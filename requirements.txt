@@ -1,0 +1,10 @@
+streamlit
+streamlit-aggrid
+kflow
+pandas
+numpy
+altair
+sqlalchemy
+sqlalchemy-redshift
+boto3
+psycopg2-binary
