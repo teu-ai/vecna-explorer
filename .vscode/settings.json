@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "redshift-cluster-1.czhtw70lrl8s.us-east-1.redshift.amazonaws.com",
+            "port": 5439,
+            "driver": "Redshift Driver (Dedicated ver)",
+            "name": "Warehouse",
+            "database": "warehouse",
+            "username": "admin",
+            "password": "cXMZ5BQ7NqSx9c8FzWNTkHaPePpY3UG48an8HGuT"
+        }
+    ]
+}
