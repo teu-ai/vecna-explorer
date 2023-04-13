@@ -216,14 +216,17 @@ def load_event_vecna_back(subscription_id, env):
     return response.text
 
 def load_event_dynamo(subscription_id, env):
-    from kflow import authn
+    import boto3
 
     if env == "prod":
         endpoint = f"prod-vecna-Subscription"
     elif env == "staging":
         endpoint = f"staging-vecna-Subscription"
 
-    dynamo_client = authn.awsClient(service='dynamodb')
+    dynamo_client = boto3.client('dynamodb',
+                        aws_access_key_id=st.secrets["aws_access_key_id"],
+                        aws_secret_access_key=st.secrets["aws_secret_access_key"],
+                        region_name='us-east-1')
     response = dynamo_client.query(
         TableName=f'{endpoint}',
         KeyConditionExpression='id = :id',
