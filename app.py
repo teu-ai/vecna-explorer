@@ -15,9 +15,12 @@ def agrid_options(dataframe, page_size):
     grid_options_builder.configure_selection("single")
     return grid_options_builder.build()
 
-def create_warehouse_engine():
+def create_warehouse_engine(env):
     from sqlalchemy import create_engine
-    conn_bd = f"postgresql://{st.secrets['db_username']}:{st.secrets['db_password']}@{st.secrets['db_host']}:{st.secrets['db_port']}/{st.secrets['db_schema']}"
+    if env == "prod":
+        conn_bd = f"postgresql://{st.secrets['db_username']}:{st.secrets['db_password']}@{st.secrets['db_host']}:{st.secrets['db_port']}/warehouse"
+    elif env == "staging":
+        conn_bd = f"postgresql://{st.secrets['db_username']}:{st.secrets['db_password']}@{st.secrets['db_host']}:{st.secrets['db_port']}/warehouse"
     return create_engine(conn_bd)
 
 def create_prisma_engine():
@@ -26,24 +29,43 @@ def create_prisma_engine():
     return create_engine(conn_bd)
 
 @st.cache_data
-def load_data() -> pd.DataFrame:
-    warehouse_engine = create_warehouse_engine()
+def load_data(env) -> pd.DataFrame:
+    warehouse_engine = create_warehouse_engine(env)
+
+    if env == "prod":
+        schema = "public"
+        subscriptions_table = "prod_vecna_subscription"
+        events_table = "prod_vecna_event_consolidated"
+    elif env == "staging":
+        schema = "staging"
+        subscriptions_table = "dev_vecna_subscription"
+        events_table = "dev_vecna_event_consolidated"
 
     # All Vecna subscriptions
-    query = '''
+    query = f'''
 with subs as (
     select
         *
-        ,row_number() over (partition by "subscription_bl" order by "subscription_created_at" asc) as row_number
+        ,row_number() over (partition by "subscription_doc" order by "subscription_created_at" desc) as row_number
     from
-        "staging"."dev_vecna_subscription"
+    (
+        select
+            *
+            ,case
+                when "subscription_bl" != 'NOT AVAILABLE' then "subscription_bl"
+                when "subscription_container" != 'NOT AVAILABLE' then "subscription_container"
+                when "subscription_booking" != 'NOT AVAILABLE' then "subscription_booking"
+            end as "subscription_doc"
+        from
+            {schema}.{subscriptions_table}
+    )
 )
 select * from subs where row_number = 1;
     '''
     subscriptions = pd.read_sql_query(query, warehouse_engine)
 
     # All Vecna events
-    query = '''
+    query = f'''
 select
     "vecna_event_id"
     ,"vecna_event_container"
@@ -52,16 +74,31 @@ select
     ,"subscription_bl"
     ,"subscription_booking"
     ,"subscription_container"
+    ,case
+        when "subscription_bl" != 'NOT AVAILABLE' then "subscription_bl"
+        when "subscription_container" != 'NOT AVAILABLE' then "subscription_container"
+        when "subscription_booking" != 'NOT AVAILABLE' then "subscription_booking"
+    end as "subscription_doc"
     ,"subscription_carrier_code"
     ,"vecna_event_created_at"
+    ,"raw_event_gh"
+    ,"raw_event_oi"
 from
-    "staging"."dev_vecna_event_consolidated"
+    {schema}.{events_table}
 where "vecna_event_created_at" >= '2023-03-24'
     '''
     events = pd.read_sql_query(query, warehouse_engine)
+    subscriptions = subscriptions.merge(events.groupby("subscription_doc").agg(
+        {"subscription_id":"count"
+        ,"vecna_event_created_at":"max"
+         }), on="subscription_doc", how="left").rename(columns={
+        "subscription_id_x":"subscription_id"
+        ,"subscription_id_y":"events"
+        ,"vecna_event_created_at":"last"
+        })
 
     # All containers that have events
-    query = '''
+    query = f'''
 select
     *
 from
@@ -71,7 +108,7 @@ inner join
     select distinct
         "vecna_event_container"
     from
-        "staging"."dev_vecna_event_consolidated"
+        {schema}.{events_table}
 ) as "containers"
 on "staging"."dev_operation_prisma_tracking"."container_number" =  "containers"."vecna_event_container"
 where
@@ -82,7 +119,7 @@ where
     return (shipments_cargo, events, subscriptions)
 
 @st.cache_data
-def load_events_vecna(doctype, doc):
+def load_events_vecna(doctype, doc, env):
     if doctype == "mbl":
         where = f"where \"subscription_bl\" = '{doc}'"
     elif doctype == "container":
@@ -126,14 +163,21 @@ order by
     return events
 
 @st.cache_data
-def load_event_vecna(vecna_event_id, subscription_id, event_created_at, event_container):
+def load_event_vecna(vecna_event_id, subscription_id, event_created_at, event_container, env):
 
-    warehouse_engine = create_warehouse_engine()
+    if env == "prod":
+        schema = "public"
+        event_table = "prod_vecna_event_consolidated"
+    elif env == "staging":
+        schema = "staging"
+        event_table = "dev_vecna_event_consolidated"
+
+    warehouse_engine = create_warehouse_engine(env)
     query = f'''
         select
             *
         from
-            "staging"."dev_vecna_event_consolidated"
+            {schema}.{event_table}
         where
             ("vecna_event_id" = '{vecna_event_id}' or "vecna_event_id" is null)
             and "subscription_id" = '{subscription_id}'
@@ -143,10 +187,58 @@ def load_event_vecna(vecna_event_id, subscription_id, event_created_at, event_co
     event = pd.read_sql_query(query, warehouse_engine)
     return event
 
+def load_event_raw(filename, path):
+    import io
+    bucket = "prod-track-sources-s3stack-dumpbucketbe480749-wch2mlfw0oh0"
+    obj = extract.LakeFileAsObject(path, filename, bucket)
+    if len(obj) != 0:
+        j = json.load(io.BytesIO(obj['Body'].read()))
+        #j = obj['Body'].read().decode('utf-8') 
+    else:
+        j = {}
+    return j
+
+def load_event_vecna_back(subscription_id, env):
+    import requests
+
+    if env == "prod":
+        endpoint = f"https://vecna.klog.co/subscriptions/{subscription_id}"
+        token = "Y2xkYWl4a3R0MDAwZDM3NnF0YW1qd2U5bjp4ZGM3ZDN0aDNnWWV0ZUMwVXViM29m="
+    elif env == "staging":
+        endpoint = f"https://staging.vecna.klog.co/subscriptions/{subscription_id}"
+        token = "Y2w4NHVhNzU5MDAwMTA5bDNnYTVjOXl1dDpETVNLQURLTUxTUUE="
+
+    response = requests.get(
+        endpoint,
+        headers={'Authorization': f'Token {token}'}
+    )
+    print(response.text)
+    return response.text
+
+def load_event_dynamo(subscription_id, env):
+    from kflow import authn
+
+    if env == "prod":
+        endpoint = f"prod-vecna-Subscription"
+    elif env == "staging":
+        endpoint = f"staging-vecna-Subscription"
+
+    dynamo_client = authn.awsClient(service='dynamodb')
+    response = dynamo_client.query(
+        TableName=f'{endpoint}',
+        KeyConditionExpression='id = :id',
+        ExpressionAttributeValues={
+            ':id': {"S": subscription_id}
+        }
+    )
+    return response
+
 
 st.set_page_config(layout="wide")
 
-shipments_cargo, events, subscriptions = load_data()
+env = st.selectbox("Ambiente", options=["prod","staging"])
+
+shipments_cargo, events, subscriptions = load_data(env)
 
 st.write("# ~ Vecna Explorer ~")
 
@@ -156,12 +248,12 @@ subscriptions_table_columns = {
     "subscription_created_at":"created_at"
     ,"subscription_id":"id"
     ,"subscription_type":"type"
-    ,"subscription_bl":"bl"
-    ,"subscription_booking":"booking"
-    ,"subscription_container":"container"
+    ,"subscription_doc":"doc"
     ,"subscription_carrier_code":"carrier"
     ,"response_api_oi_creation":"response_oi"
     ,"response_api_gh_creation":"response_gh"
+    ,"events":"events"
+    ,"last":"last"
     }
 subscriptions_table = subscriptions[subscriptions_table_columns.keys()].rename(columns=subscriptions_table_columns)
 subscriptions_table = subscriptions_table.replace("NOT AVAILABLE","")
@@ -169,7 +261,24 @@ selected_subscription = AgGrid(subscriptions_table, agrid_options(subscriptions_
 
 st.write("#### Events @ Vecna")
 
-if selected_subscription["selected_rows"]:
+selected_event = []
+
+if len(selected_subscription["selected_rows"]) == 0:
+
+    # Sin subscripcion
+    events_table_columns = {
+        "subscription_id":"subscription_id"
+        ,"vecna_event_id":"id"
+        ,"vecna_event_created_at": "created_at"
+        ,"vecna_event_container":"container"
+        ,"raw_event_gh":"raw_event_gh"
+        ,"raw_event_oi":"raw_event_oi"
+    }
+    events_table = events[events_table_columns.keys()].rename(columns=events_table_columns)
+    events_table_no_sub = events_table.loc[lambda x: pd.isna(x["subscription_id"])]
+    selected_event = AgGrid(events_table_no_sub, agrid_options(events_table_no_sub, 15), columns_auto_size_mode=1)
+
+else:
 
     selected_subscription_id = selected_subscription["selected_rows"][0]["id"]
     events_table_columns = {
@@ -177,34 +286,87 @@ if selected_subscription["selected_rows"]:
         ,"vecna_event_id":"id"
         ,"vecna_event_created_at": "created_at"
         ,"vecna_event_container":"container"
+        ,"raw_event_gh":"raw_event_gh"
+        ,"raw_event_oi":"raw_event_oi"
     }
     events_table = events[events_table_columns.keys()].rename(columns=events_table_columns)
     events_table = events_table.loc[lambda x: x["subscription_id"] == selected_subscription_id]
     selected_event = AgGrid(events_table, agrid_options(events_table, 15), columns_auto_size_mode=1)
 
-    if selected_event["selected_rows"]:
-        
-        selected_event_id = selected_event["selected_rows"][0]["id"]
-        selected_event_subscription_id = selected_event["selected_rows"][0]["subscription_id"]
-        selected_event_created_at = selected_event["selected_rows"][0]["created_at"]
-        selected_event_container = selected_event["selected_rows"][0]["container"]
-        event = load_event_vecna(selected_event_id, selected_event_subscription_id, selected_event_created_at, selected_event_container)
-        event_oi = json.loads(event["vecna_event_oi"].values[0])
-        event_gh = json.loads(event["vecna_event_gh"].values[0])
-        event_vecna = json.loads(event["vecna_event"].values[0])
+if len(selected_event) != 0:
 
-        exp = st.expander("JSONs", expanded=False)
+    selected_event_id = selected_event["selected_rows"][0]["id"]
+    selected_event_subscription_id = selected_event["selected_rows"][0]["subscription_id"]
+    selected_event_created_at = selected_event["selected_rows"][0]["created_at"]
+    selected_event_container = selected_event["selected_rows"][0]["container"]
 
-        with exp:
+    event = load_event_vecna(selected_event_id, selected_event_subscription_id, selected_event_created_at, selected_event_container, env)
+    event_vecna_gh_text = event["vecna_event_gh"].values[0]
+    event_vecna_oi_text = event["vecna_event_oi"].values[0]
+    event_vecna_text = event["vecna_event"].values[0]
+
+    # Vecna events
+
+    event_vecna_oi = json.loads(event_vecna_oi_text) if event_vecna_oi_text is not None else {}
+    event_vecna_gh = json.loads(event_vecna_gh_text) if event_vecna_gh_text is not None else {}
+    event_vecna = json.loads(event_vecna_text) if event_vecna_text is not None else {}
+
+    # Raw events
+
+    if event["raw_event_oi"].values[0] and event["raw_event_oi"].values[0] != "subscription":
+        event_oi_raw = load_event_raw(event["raw_event_oi"].values[0], "dev/oceaninsights/")
+    else:
+        event_oi_raw = {}
+    if event["raw_event_gh"].values[0] and event["raw_event_gh"].values[0] != "subscription":
+        event_gh_raw = load_event_raw(event["raw_event_gh"].values[0], "dev/gatehouse/")
+    else:
+        event_gh_raw = {}
+
+    exp = st.expander("JSONs", expanded=False)
+
+    with exp:
+
+        tab1, tab2, tab3, tab4 = st.tabs(["Vecna","Raw", "Vecna Back", "Dynamo"])
+
+        with tab1:
 
             col1, col2, col3 = st.columns([1,1,1])
             with col1:
-                st.json(event_oi)
+                st.write("Vecna Ocean Insights")
+                st.json(event_vecna_oi)
             with col2:
-                st.json(event_gh)
+                st.write("Vecna Gatehouse")
+                st.json(event_vecna_gh)
             with col3:
+                st.write("Vecna")
                 st.json(event_vecna)
-#
+        
+        with tab2:
+        
+            col1, col2 = st.columns([1,1])
+            with col1:
+                st.write("Ocean Insights")
+                if event_oi_raw == {}:
+                    st.warning("File not found")
+                else:
+                    st.json(event_oi_raw)
+            with col2:
+                st.write("Gatehouse")
+                if event_gh_raw == {}:
+                    st.warning("File not found")
+                else:
+                    st.json(event_gh_raw)
+
+        with tab3:
+
+            event = load_event_vecna_back(selected_event_subscription_id, env)
+            st.json(event)
+
+        with tab4:
+
+            event = load_event_dynamo(selected_event_subscription_id, env)
+            st.json(event)
+    #
 
 st.write("#### Shipments @ Prisma")
 
