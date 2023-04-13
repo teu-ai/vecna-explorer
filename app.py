@@ -188,9 +188,16 @@ def load_event_vecna(vecna_event_id, subscription_id, event_created_at, event_co
     return event
 
 def load_event_raw(filename, path):
-    import io
+    import io, boto3
     bucket = "prod-track-sources-s3stack-dumpbucketbe480749-wch2mlfw0oh0"
-    obj = extract.LakeFileAsObject(path, filename, bucket)
+    
+    s3 = boto3.client('s3',
+        aws_access_key_id=st.secrets["aws_access_key_id"],
+        aws_secret_access_key=st.secrets["aws_secret_access_key"],
+        region_name='us-east-1')
+
+    obj = s3.get_object(Bucket=bucket, Key=path+filename)
+
     if len(obj) != 0:
         j = json.load(io.BytesIO(obj['Body'].read()))
         #j = obj['Body'].read().decode('utf-8') 
