@@ -60,7 +60,13 @@ with subs as (
             {schema}.{subscriptions_table}
     )
 )
-select * from subs where row_number = 1;
+select
+    *
+from
+    subs
+where
+    --row_number = 1 and
+    subscription_created_at >= '2023-01-14';
     '''
     subscriptions = pd.read_sql_query(query, warehouse_engine)
 
@@ -85,7 +91,7 @@ select
     ,"raw_event_oi"
 from
     {schema}.{events_table}
-where "vecna_event_created_at" >= '2023-03-24'
+where "vecna_event_created_at" >= '2023-03-14'
     '''
     events = pd.read_sql_query(query, warehouse_engine)
     subscriptions = subscriptions.merge(events.groupby("subscription_doc").agg(
@@ -163,7 +169,7 @@ order by
     return events
 
 @st.cache_data
-def load_event_vecna(vecna_event_id, subscription_id, event_created_at, event_container, env):
+def load_event_vecna(env, vecna_event_id, subscription_id=None, event_created_at=None, event_container=None):
 
     if env == "prod":
         schema = "public"
@@ -179,11 +185,13 @@ def load_event_vecna(vecna_event_id, subscription_id, event_created_at, event_co
         from
             {schema}.{event_table}
         where
-            ("vecna_event_id" = '{vecna_event_id}' or "vecna_event_id" is null)
-            and "subscription_id" = '{subscription_id}'
-            and "vecna_event_created_at" = '{event_created_at}'
-            and "vecna_event_container" = '{event_container}'
+            "vecna_event_id" = '{vecna_event_id}'
         '''
+            #("vecna_event_id" = '{vecna_event_id}' or "vecna_event_id" is null)
+            #and "subscription_id" = '{subscription_id}'
+            #and "vecna_event_created_at" = '{event_created_at}'
+            #and "vecna_event_container" = '{event_container}'
+        #'''
     event = pd.read_sql_query(query, warehouse_engine)
     return event
 
@@ -278,9 +286,9 @@ if len(selected_subscription["selected_rows"]) == 0:
     # Sin subscripcion
     events_table_columns = {
         "subscription_id":"subscription_id"
+        ,"subscription_doc":"subscription_doc"
         ,"vecna_event_id":"id"
         ,"vecna_event_created_at": "created_at"
-        ,"vecna_event_container":"container"
         ,"raw_event_gh":"raw_event_gh"
         ,"raw_event_oi":"raw_event_oi"
     }
@@ -293,9 +301,9 @@ else:
     selected_subscription_id = selected_subscription["selected_rows"][0]["id"]
     events_table_columns = {
         "subscription_id":"subscription_id"
+        ,"subscription_doc":"subscription_doc"
         ,"vecna_event_id":"id"
         ,"vecna_event_created_at": "created_at"
-        ,"vecna_event_container":"container"
         ,"raw_event_gh":"raw_event_gh"
         ,"raw_event_oi":"raw_event_oi"
     }
@@ -308,9 +316,10 @@ if len(selected_event) != 0:
     selected_event_id = selected_event["selected_rows"][0]["id"]
     selected_event_subscription_id = selected_event["selected_rows"][0]["subscription_id"]
     selected_event_created_at = selected_event["selected_rows"][0]["created_at"]
-    selected_event_container = selected_event["selected_rows"][0]["container"]
+    selected_event_doc = selected_event["selected_rows"][0]["subscription_doc"]
 
-    event = load_event_vecna(selected_event_id, selected_event_subscription_id, selected_event_created_at, selected_event_container, env)
+    #event = load_event_vecna(env, selected_event_id, selected_event_subscription_id, selected_event_created_at, selected_event_container)
+    event = load_event_vecna(env, selected_event_id)
     event_vecna_gh_text = event["vecna_event_gh"].values[0]
     event_vecna_oi_text = event["vecna_event_oi"].values[0]
     event_vecna_text = event["vecna_event"].values[0]
@@ -323,14 +332,14 @@ if len(selected_event) != 0:
 
     # Raw events
 
-    if event["raw_event_oi"].values[0] and event["raw_event_oi"].values[0] != "subscription":
-        event_oi_raw = load_event_raw(event["raw_event_oi"].values[0], "dev/oceaninsights/")
-    else:
-        event_oi_raw = {}
-    if event["raw_event_gh"].values[0] and event["raw_event_gh"].values[0] != "subscription":
-        event_gh_raw = load_event_raw(event["raw_event_gh"].values[0], "dev/gatehouse/")
-    else:
-        event_gh_raw = {}
+    #if event["raw_event_oi"].values[0] and event["raw_event_oi"].values[0] != "subscription":
+    #    event_oi_raw = load_event_raw(event["raw_event_oi"].values[0], "dev/oceaninsights/")
+    #else:
+    event_oi_raw = {}
+    #if event["raw_event_gh"].values[0] and event["raw_event_gh"].values[0] != "subscription":
+    #    event_gh_raw = load_event_raw(event["raw_event_gh"].values[0], "dev/gatehouse/")
+    #else:
+    event_gh_raw = {}
 
     exp = st.expander("JSONs", expanded=False)
 
