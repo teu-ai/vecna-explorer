@@ -18,9 +18,14 @@ def agrid_options(dataframe, page_size):
 def create_warehouse_engine(env):
     from sqlalchemy import create_engine
     if env == "prod":
-        conn_bd = f"postgresql://{st.secrets['db_username']}:{st.secrets['db_password']}@{st.secrets['db_host']}:{st.secrets['db_port']}/warehouse"
+        conn_bd = f"postgresql://{st.secrets['wh_username']}:{st.secrets['wh_password']}@{st.secrets['wh_host']}:{st.secrets['wh_port']}/{st.secrets['wh_db']}"
     elif env == "staging":
-        conn_bd = f"postgresql://{st.secrets['db_username']}:{st.secrets['db_password']}@{st.secrets['db_host']}:{st.secrets['db_port']}/warehouse"
+        conn_bd = f"postgresql://{st.secrets['wh_username']}:{st.secrets['wh_password']}@{st.secrets['wh_host']}:{st.secrets['wh_port']}/{st.secrets['wh_db']}"
+    return create_engine(conn_bd)
+
+def create_warehouse_vecna_engine(env):
+    from sqlalchemy import create_engine
+    conn_bd = f"postgresql://{st.secrets['wh_vecna_username']}:{st.secrets['wh_vecna_password']}@{st.secrets['wh_vecna_host']}:{st.secrets['wh_vecna_port']}/{st.secrets['wh_vecna_db']}"
     return create_engine(conn_bd)
 
 def create_prisma_engine():
@@ -29,17 +34,17 @@ def create_prisma_engine():
     return create_engine(conn_bd)
 
 @st.cache_data
-def load_data(env) -> pd.DataFrame:
-    warehouse_engine = create_warehouse_engine(env)
-
+def load_subscriptions(env) -> pd.DataFrame:
+    """Load subscriptions from Warehouse Vecna"""
+    
+    warehouse_engine = create_warehouse_vecna_engine(env)
+    
     if env == "prod":
         schema = "public"
         subscriptions_table = "prod_vecna_subscription"
-        events_table = "prod_vecna_event_consolidated"
     elif env == "staging":
         schema = "staging"
         subscriptions_table = "dev_vecna_subscription"
-        events_table = "dev_vecna_event_consolidated"
 
     # All Vecna subscriptions
     query = f'''
@@ -69,6 +74,20 @@ where
     subscription_created_at >= '2023-01-14';
     '''
     subscriptions = pd.read_sql_query(query, warehouse_engine)
+    return subscriptions
+
+@st.cache_data
+def load_events(env) -> pd.DataFrame:
+    """Load events from Warehouse Vecna"""
+    
+    warehouse_engine = create_warehouse_vecna_engine(env)
+    
+    if env == "prod":
+        schema = "public"
+        events_table = "prod_vecna_event_consolidated"
+    elif env == "staging":
+        schema = "staging"
+        events_table = "dev_vecna_event_consolidated"
 
     # All Vecna events
     query = f'''
@@ -94,35 +113,25 @@ from
 where "vecna_event_created_at" >= '2023-03-14'
     '''
     events = pd.read_sql_query(query, warehouse_engine)
-    subscriptions = subscriptions.merge(events.groupby("subscription_doc").agg(
-        {"subscription_id":"count"
-        ,"vecna_event_created_at":"max"
-         }), on="subscription_doc", how="left").rename(columns={
-        "subscription_id_x":"subscription_id"
-        ,"subscription_id_y":"events"
-        ,"vecna_event_created_at":"last"
-        })
+    return events
 
-    # All containers that have events
+@st.cache_data
+def load_shipments_cargo(env) -> pd.DataFrame:
+    warehouse_engine = create_warehouse_engine(env)
+
     query = f'''
 select
     *
 from
-    "staging"."dev_operation_prisma_tracking"
-inner join
-(
-    select distinct
-        "vecna_event_container"
-    from
-        {schema}.{events_table}
-) as "containers"
-on "staging"."dev_operation_prisma_tracking"."container_number" =  "containers"."vecna_event_container"
+    "staging"."stg_operation_prisma_tracking"
 where
     "s_created_at" >= '2023-01-01'
     '''
     shipments_cargo = pd.read_sql_query(query, warehouse_engine)
 
-    return (shipments_cargo, events, subscriptions)
+    print(shipments_cargo)
+
+    return shipments_cargo
 
 @st.cache_data
 def load_events_vecna(doctype, doc, env):
@@ -256,7 +265,20 @@ st.set_page_config(layout="wide")
 
 env = st.selectbox("Ambiente", options=["prod","staging"])
 
-shipments_cargo, events, subscriptions = load_data(env)
+subscriptions = load_subscriptions(env)
+
+events = load_events(env)
+
+subscriptions = subscriptions.merge(events.groupby("subscription_doc").agg(
+    {"subscription_id":"count"
+    ,"vecna_event_created_at":"max"
+        }), on="subscription_doc", how="left").rename(columns={
+    "subscription_id_x":"subscription_id"
+    ,"subscription_id_y":"events"
+    ,"vecna_event_created_at":"last"
+    })
+
+shipments_cargo = load_shipments_cargo(env)
 
 st.write("# ~ Vecna Explorer ~")
 
@@ -336,10 +358,10 @@ if len(selected_event) != 0:
     #    event_oi_raw = load_event_raw(event["raw_event_oi"].values[0], "dev/oceaninsights/")
     #else:
     event_oi_raw = {}
-    #if event["raw_event_gh"].values[0] and event["raw_event_gh"].values[0] != "subscription":
-    #    event_gh_raw = load_event_raw(event["raw_event_gh"].values[0], "dev/gatehouse/")
-    #else:
-    event_gh_raw = {}
+    if event["raw_event_gh"].values[0] and event["raw_event_gh"].values[0] != "subscription":
+        event_gh_raw = load_event_raw(event["raw_event_gh"].values[0], "dev/gatehouse/")
+    else:
+        event_gh_raw = {}
 
     exp = st.expander("JSONs", expanded=False)
 
