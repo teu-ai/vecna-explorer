@@ -3,9 +3,12 @@
 .DS_STORE
 *.sql
 *.ipynb
+app.ipynb
 .ipynb_checkpoints/
 .pyc
 __pycache__/
 __pycache__
 tools/__pycache__/
 tools/__pycache__
+.vscode/
+.vscode

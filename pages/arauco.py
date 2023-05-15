@@ -6,6 +6,8 @@ from tools.tools import list_files_s3, load_csv_s3, agrid_options
 import altair as alt
 import components
 
+ARAUCO = True
+
 # Data
 
 @st.cache_data
@@ -32,7 +34,7 @@ def plot_errors_per_envio(data):
 
 # App
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title = "Calidad de datos")
 
 if 'problems_selected_in_table' not in st.session_state:
     st.session_state.problems_selected_in_table = []
@@ -53,6 +55,11 @@ with col1_a:
     else:
         data_quality_wide = load_data_quality_historic(data_source)
 
+#if ARAUCO:
+    errors = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
+    columns = [x for x in data_quality_wide.columns if x not in errors]
+    data_quality_wide = data_quality_wide[columns]
+
 with col2_a:
     # Create selectbox with Envío de datos
     envios_de_datos = ["Todos"] + data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()
@@ -71,7 +78,7 @@ with col2_b:
     problem_columns = [col for col in data_quality_wide.columns if col.startswith("W.")]
 
     # Choose which problems to show
-    problems_selected = st.multiselect("Problemas", problem_columns, default=st.session_state.problems_selected_in_table)
+    problems_selected = st.multiselect("Comentarios", problem_columns, default=st.session_state.problems_selected_in_table)
 
 # Filtered
 data_quality_wide_filtered = data_quality_wide.copy()
@@ -96,12 +103,16 @@ with tab1:
     entregas_total = data_quality_wide.count()[0]
     entregas_total_filtered = data_quality_wide_filtered.count()[0]
 
-    # Print the number of Entregas
-    st.write(f"**Entregas**: {entregas_total} / {entregas_total_filtered}")
-    
-    # Print the number of Entregas with problems
-    entregas_with_problems = data_quality_wide_filtered[problem_columns].any(axis=1).sum()
-    st.write(f"**Entregas con comentarios**: {entregas_with_problems} ({round(entregas_with_problems*1.0/entregas_total*1000.0)/10.0}%)")
+    entregas_with_problems = data_quality_wide[problem_columns].any(axis=1).sum()
+    entregas_with_problems_filtered = data_quality_wide_filtered[problem_columns].any(axis=1).sum()
+
+    df = pd.DataFrame([
+        [entregas_total,entregas_total_filtered],
+        [entregas_with_problems,entregas_with_problems_filtered],
+        [round(entregas_with_problems*1.0/entregas_total*1000.0)/10.0 if entregas_total != 0 else 0,
+         round(entregas_with_problems_filtered*1.0/entregas_total_filtered*1000.0)/10.0 if entregas_total_filtered != 0 else 0]],columns=["Total","Filtradas"],
+        index=["Entregas","Entregas con comentarios","% con comentarios"])
+    st.dataframe(df)
 
     # Get how many times each problem appears.
     problem_counts = data_quality_wide_filtered[problem_columns].sum()
@@ -118,11 +129,13 @@ with tab1:
             continue
         problem_counts[envio_de_datos] = data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == envio_de_datos][problem_columns].sum()
 
-    problem_counts = problem_counts.reset_index().rename(columns={"index":"Problema"})
+    problem_counts = problem_counts.reset_index().rename(columns={"index":"Comentario"})
+
+    st.write("**Detalle por comentario y entrega**")
 
     problems_selected_in_table = AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
     if problems_selected_in_table:
-        st.session_state.problems_selected_in_table = [problem_selected["Problema"] for problem_selected in problems_selected_in_table["selected_rows"]]
+        st.session_state.problems_selected_in_table = [problem_selected["Comentario"] for problem_selected in problems_selected_in_table["selected_rows"]]
 
 with tab2:
 
@@ -156,20 +169,29 @@ with tab3:
                 data_quality_columns_from_problem.append("TR2 Puerto")
 
     # Filter columns to show
-    data_quality_columns_default = ["subscriptionId","Entrega","Estado","MBL","Contenedor","Cliente"] + data_quality_columns_from_problem
-    data_quality_columns = st.multiselect("Columnas", data_quality_wide_filtered.columns, default=data_quality_columns_default)
+    #data_quality_columns_default = ["subscriptionId","Entrega","Estado","MBL","Contenedor","Cliente"] + data_quality_columns_from_problem
+    data_quality_columns_out = [
+        "Shipment_id","Fecha_Creacion_Embarque","subscriptionId","ETD Inicial (Sch)","ETD Final (Sch)","ETD (Sch)","ATD (Sch)","TR1 ATA (M)",
+        "ETD Inicial Date (Sch)","ETD Final Date (Sch)",
+        "TR1 ATD (M)","TR2 ATA (M)","TR2 ATD (M)","TR3 ATA (M)","TR3 ATD (M)","TR4 ATA (M)","TR4 ATD (M)","ETA (Sch)","ETA Inicial Date (Sch)",
+        "ETA Inicial (Sch)","ETA Final Date (Sch)","ETA Final (Sch)","ATA (Sch)"] + problem_columns
+    data_quality_columns = [x for x in data_quality_wide_filtered.columns if x not in data_quality_columns_out]
+    data_quality_columns_default = ["Entrega","Estado","MBL","Contenedor","Cliente"] + data_quality_columns_from_problem
+    data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
 
     # Show the data
-    data_quality_main = data_quality_wide_filtered[data_quality_columns]
+    data_quality_main = data_quality_wide_filtered[data_quality_columns_selected]
 
     selected_entregas = AgGrid(data_quality_main, agrid_options(data_quality_main, 30), columns_auto_size_mode=1, allow_unsafe_jscode=1, allow_unsafe_html=1)
 
-    if selected_entregas and len(selected_entregas["selected_rows"])>0:
-        selected_entrega = selected_entregas["selected_rows"][0]["Entrega"]
-        selected_mbl = selected_entregas["selected_rows"][0]["MBL"]
-        selected_subscription_id = selected_entregas["selected_rows"][0]["subscriptionId"]
-        st.session_state.selected_entrega = selected_entrega
-        st.session_state.mbl = selected_mbl
-        st.session_state.selected_subscription_id = selected_subscription_id
+    if not ARAUCO:
 
-        components.show_shipment_prisma(selected_subscription_id, rows_to_highlight=["TR1 Puerto","TR2 Puerto"])
+        if selected_entregas and len(selected_entregas["selected_rows"])>0:
+            selected_entrega = selected_entregas["selected_rows"][0]["Entrega"]
+            selected_mbl = selected_entregas["selected_rows"][0]["MBL"]
+            selected_subscription_id = selected_entregas["selected_rows"][0]["subscriptionId"]
+            st.session_state.selected_entrega = selected_entrega
+            st.session_state.mbl = selected_mbl
+            st.session_state.selected_subscription_id = selected_subscription_id
+
+            components.show_shipment_prisma(selected_subscription_id, rows_to_highlight=["TR1 Puerto","TR2 Puerto"])

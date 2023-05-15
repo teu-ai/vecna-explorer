@@ -4,6 +4,8 @@ import pandas as pd
 import json
 import load, components
 
+ARAUCO = True
+
 def agrid_options(dataframe, page_size):
     grid_options_builder = GridOptionsBuilder.from_dataframe(dataframe)
     grid_options_builder.configure_pagination(enabled=True, paginationPageSize=page_size, paginationAutoPageSize=False)
