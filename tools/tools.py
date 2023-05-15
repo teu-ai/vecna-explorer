@@ -62,4 +62,26 @@ def load_json_s3(bucket:str, filename:str, path:str):
 
 def load_event_raw(filename, path):
 
+
     return load_json_s3(bucket="prod-track-sources-s3stack-dumpbucketbe480749-wch2mlfw0oh0", filename=filename, path=path)
+
+def delete_page(main_script_path_str, page_name):
+    from streamlit.source_util import (
+        page_icon_and_name, 
+        calc_md5, 
+        get_pages,
+        _on_pages_changed
+    )
+    current_pages = get_pages(main_script_path_str)
+
+    for key, value in current_pages.items():
+        if value['page_name'] == page_name:
+            del current_pages[key]
+            break
+        else:
+            pass
+    _on_pages_changed.send()
+
+def setup_ambient(ambient:str):
+    if ambient == "Arauco":
+        delete_page("Main.py","Vecna_explorer")

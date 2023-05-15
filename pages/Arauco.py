@@ -2,11 +2,13 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
-from tools.tools import list_files_s3, load_csv_s3, agrid_options
+from tools.tools import list_files_s3, load_csv_s3, agrid_options, setup_ambient
 import altair as alt
 import components
 
 ARAUCO = True
+
+setup_ambient("Arauco")
 
 # Data
 

@@ -3,28 +3,11 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 import pandas as pd
 import json
 import load, components
+from tools.tools import setup_ambient
 
 ARAUCO = True
 
-
-def delete_page(main_script_path_str, page_name):
-    from streamlit.source_util import (
-        page_icon_and_name, 
-        calc_md5, 
-        get_pages,
-        _on_pages_changed
-    )
-    current_pages = get_pages(main_script_path_str)
-
-    for key, value in current_pages.items():
-        if value['page_name'] == page_name:
-            del current_pages[key]
-            break
-        else:
-            pass
-    _on_pages_changed.send()
-
-delete_page("Main.py","Vecna_explorer")
+setup_ambient("Arauco")
 
 st.write("# Integraciones de datos KLog.co")
 
