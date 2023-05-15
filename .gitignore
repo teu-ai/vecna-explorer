@@ -1,6 +1,11 @@
 .streamlit
 .streamlit/
 .DS_STORE
-.sql
+*.sql
+*.ipynb
 .ipynb_checkpoints/
 .pyc
+__pycache__/
+__pycache__
+tools/__pycache__/
+tools/__pycache__
