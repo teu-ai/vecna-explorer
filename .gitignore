@@ -1,3 +1,6 @@
 .streamlit
 .streamlit/
 .DS_STORE
+.sql
+.ipynb_checkpoints/
+.pyc
