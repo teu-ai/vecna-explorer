@@ -82,6 +82,8 @@ def delete_page(main_script_path_str, page_name):
             pass
     _on_pages_changed.send()
 
-def setup_ambient(ambient:str):
+def setup_ambient(ambient:str = "Arauco"):
+    from streamlit.source_util import _on_pages_changed
     if ambient == "Arauco":
         delete_page("Main.py","Vecna_explorer")
+    _on_pages_changed.send()

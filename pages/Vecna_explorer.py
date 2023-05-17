@@ -3,8 +3,11 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 import pandas as pd
 import json
 import load, components
+from tools.tools import setup_ambient
 
 ARAUCO = True
+
+setup_ambient()
 
 def agrid_options(dataframe, page_size):
     grid_options_builder = GridOptionsBuilder.from_dataframe(dataframe)
@@ -100,9 +103,7 @@ if selected_event and len(selected_event["selected_rows"]) != 0:
     selected_event_doc = selected_event["selected_rows"][0]["subscription_doc"]
 
     #event = load_event_vecna(env, selected_event_id, selected_event_subscription_id, selected_event_created_at, selected_event_container)
-    print(selected_event_id)
     event = load.load_event_vecna(env, selected_event_id)
-    print(event)
     event_vecna_gh_text = event["vecna_event_gh"].values[0]
     event_vecna_oi_text = event["vecna_event_oi"].values[0]
     event_vecna_text = event["vecna_event"].values[0]

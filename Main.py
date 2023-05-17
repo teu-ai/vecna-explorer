@@ -7,7 +7,7 @@ from tools.tools import setup_ambient
 
 ARAUCO = True
 
-setup_ambient("Arauco")
+setup_ambient()
 
 st.write("# Integraciones de datos KLog.co")
 

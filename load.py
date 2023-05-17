@@ -127,8 +127,10 @@ def load_events_vecna(doctype, doc, env):
 
     warehouse_engine = create_warehouse_engine()
     query = f'''
-        select *
-        from "staging"."stg_vecna_event_consolidated_2"
+        select
+            *
+        from
+            "staging"."stg_vecna_event_consolidated_2"
         {where}
         '''
     events = pd.read_sql_query(query, warehouse_engine)
@@ -156,7 +158,7 @@ where
     "a"."container_number" = '{container}'
 order by
     "a"."createdAt" desc
-    '''
+'''
     events = pd.read_sql_query(query, prisma_engine)
     return events
 
