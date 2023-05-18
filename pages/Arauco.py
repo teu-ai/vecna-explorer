@@ -205,7 +205,7 @@ with tab1:
 
     problems_catgories_selected_in_table = AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
 
-    AgGrid(problem_categories_counts/1000.0, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
+    AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
 
 with tab2:
 
