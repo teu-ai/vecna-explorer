@@ -83,6 +83,69 @@ with col2_b:
     problems_selected = st.multiselect("Comentarios", problem_columns, default=st.session_state.problems_selected_in_table, help="Un Comentario es una observación sobre coherencia y completitud de los datos.")
 
 # Filtered
+
+problem_columns_categories_map = {
+    "Zarpe":[
+        "W. Sin ETD",
+        "W. ETD en el pasado sin ATD",
+        "W. Sin ATD y ya zarpó",
+        "W. ATD >= ETA"],
+    "Trasbordo":[
+        "W. TR1 sin ETA",
+        "W. Gran error ETA TR1 - ATA TR1",
+        "W. ETA TR1 = ETD Total",
+        "W. ETA TR1 < ETD Total",
+        "W. ETA TR1 = ETA Total",
+        "W. ETA TR1 > ETA Total",
+        "W. TR2 sin ETA",
+        "W. Gran error ETA TR2 - ATA TR2",
+        "W. ETA TR2 = ETD Total",
+        "W. ETA TR2 < ETD Total",
+        "W. ETA TR2 = ETA Total",
+        "W. ETA TR2 > ETA Total",
+        "W. TR3 sin ETA",
+        "W. Gran error ETA TR3 - ATA TR3",
+        "W. ETA TR3 = ETD Total",
+        "W. ETA TR3 < ETD Total",
+        "W. ETA TR3 = ETA Total",
+        "W. ETA TR3 > ETA Total",
+        "W. TR4 sin ETA",
+        "W. Gran error ETA TR4 - ATA TR4",
+        "W. ETA TR4 = ETD Total",
+        "W. ETA TR4 < ETD Total",
+        "W. ETA TR4 = ETA Total",
+        "W. ETA TR4 > ETA Total"],
+    "Fecha de llegada":[
+        "W. Sin ETA",
+        "W. ETA en el pasado sin ATA",
+        "W. Con ATA, pero no Finalizado o Arribado"],
+    "Descarga":[
+        "W. Sin POD Descarga, Finalizado",
+        "W. POD Descarga < ATA"
+    ],
+    "Empty return":[
+        "W. Sin devolución, Finalizado",
+        "W. Devuelto vacío < POD Descarga"
+    ],
+    "Out of gate":[
+
+    ],
+    "Otros comentarios":[
+        "W. Sin POL",
+        "W. Sin POD",
+        "W. POL = POD",
+        "W. Sin nave",
+        "W. Sin viaje",
+        "W. Sin naviera"
+    ],
+    "Total":problem_columns
+}
+problem_columns_categories = problem_columns_categories_map.keys()
+problem_columns_categories_list = {v:k for k in problem_columns_categories_map for v in problem_columns_categories_map[k]}
+
+for k, v in problem_columns_categories_map.items():
+    data_quality_wide[k] = data_quality_wide[v].any(axis=1)
+
 data_quality_wide_filtered = data_quality_wide.copy()
 
 # Filter the data based on the Envío de datos selected
@@ -97,7 +160,7 @@ if problems_selected:
 documentation = {"W. ETD en el pasado sin ATD": "La fecha estimada de salida (ETD) es anterior a la fecha actual, y todavía no hay ATD.",
                  "W. Con ATA, pero no Finalizado o Arribado": "El estado del embarque no es coherente con el hecho de que exista una fecha de arribo (ATA)."}
 
-tab1, tab2, tab3 = st.tabs(["Resumen", "Evolucion", "Entregas"])
+tab1, tab2, tab3, tab4 = st.tabs(["Resumen", "Detalle", "Análisis", "Entregas"])
 
 with tab1:
 
@@ -118,6 +181,7 @@ with tab1:
 
     # Get how many times each problem appears.
     problem_counts = data_quality_wide_filtered[problem_columns].sum()
+    problem_categories_counts = data_quality_wide_filtered[problem_columns_categories].sum()
 
     # Transform the counts into a dataframe.
     if problems_selected:
@@ -125,21 +189,32 @@ with tab1:
     else:
         problem_counts = pd.DataFrame(problem_counts, columns=["Entregas"])
 
+    problem_categories_counts = pd.DataFrame(problem_categories_counts, columns=["Entregas"])
+
     # Compute sums for each problem of each envío de datos.
     for envio_de_datos in envios_de_datos:
         if envio_de_datos == "Todos":
             continue
         problem_counts[envio_de_datos] = data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == envio_de_datos][problem_columns].sum()
+        problem_categories_counts[envio_de_datos] = data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == envio_de_datos][problem_columns_categories].sum()
 
     problem_counts = problem_counts.reset_index().rename(columns={"index":"Comentario"})
+    problem_categories_counts = problem_categories_counts.reset_index().rename(columns={"index":"Categoria"})
+
+    st.write("**Comentarios por hitos**")
+
+    problems_catgories_selected_in_table = AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
+
+    AgGrid(problem_categories_counts/1000.0, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
+
+with tab2:
 
     st.write("**Detalle por comentario y entrega**")
 
     problems_selected_in_table = AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
-    #if problems_selected_in_table:
-    #    st.session_state.problems_selected_in_table = [problem_selected["Comentario"] for problem_selected in #problems_selected_in_table["selected_rows"]]
+    
 
-with tab2:
+with tab3:
 
     # Compute percent of problems for all envios de datos
     data_per_envio = {}
@@ -157,7 +232,7 @@ with tab2:
 
     st.altair_chart(plot_errors_per_envio(data_per_envio))
 
-with tab3:
+with tab4:
 
     # Select columns based on the problem selected
     data_quality_columns_from_problem = []

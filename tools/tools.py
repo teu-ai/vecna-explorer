@@ -14,6 +14,7 @@ def agrid_options(dataframe, page_size):
     #grid_options_builder.configure_column("Entrega",
     #                    headerName="Entrega",
     #                    cellRenderer=JsCode('''function(params) {return '<a href="https://www.google.com">${params.value}</a>'}'''))
+    #grid_options_builder.configure_column("Categoria",rowGroup=True)
     return grid_options_builder.build()
 
 def list_files_s3(bucket:str, path:str):
