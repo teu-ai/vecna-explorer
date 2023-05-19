@@ -205,13 +205,32 @@ with tab1:
 
     problems_catgories_selected_in_table = AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
 
-    AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
+    for column in problem_categories_counts.columns:
+        if column == "Categoria":
+            continue
+        problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total*1.0)
+
+    grid_options_builder = GridOptionsBuilder.from_dataframe(problem_categories_counts)
+    grid_options_builder.configure_pagination(enabled=True, paginationPageSize=60, paginationAutoPageSize=False)
+    grid_options_builder.configure_default_column(floatingFilter=True, selectable=False)
+    grid_options_builder.configure_grid_options(domLayout='normal')
+    grid_options_builder.configure_selection("single")
+    for column in problem_categories_counts.columns:
+        if column == "Categoria":
+            continue
+        grid_options_builder.configure_column(column, valueGetter=f"data.Entregas.toFixed(1)*100 + '%'")
+        #grid_options_builder.configure_column(column, valueGetter=f"(data.Entregas.toFixed(1)*100) + '%')")
+        #grid_options_builder.configure_column(column, valueGetter=f"(data.Envio_1.toFixed(1)*100) + '%')")
+    go = grid_options_builder.build()
+    #print(go)
+
+    #AgGrid(problem_categories_counts, go, fit_columns_on_grid_load=True)
 
 with tab2:
 
     st.write("**Detalle por comentario y entrega**")
 
-    problems_selected_in_table = AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
+    AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
     
 
 with tab3:
