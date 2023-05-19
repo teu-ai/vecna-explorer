@@ -160,6 +160,22 @@ if problems_selected:
 documentation = {"W. ETD en el pasado sin ATD": "La fecha estimada de salida (ETD) es anterior a la fecha actual, y todavía no hay ATD.",
                  "W. Con ATA, pero no Finalizado o Arribado": "El estado del embarque no es coherente con el hecho de que exista una fecha de arribo (ATA)."}
 
+
+
+# Compute percent of problems for all envios de datos
+data_per_envio = {}
+for envio_de_datos in envios_de_datos:
+    if envio_de_datos == "Todos":
+        continue
+    data_per_envio[envio_de_datos] = {}
+    data_per_envio[envio_de_datos]["total"] = data_quality_wide.loc[lambda x: x["Envío de datos"] == envio_de_datos].count()[0]
+    if problems_selected:
+        ps = problems_selected
+    else:
+        ps = problem_columns
+    data_per_envio[envio_de_datos]["errors"] = data_quality_wide.loc[lambda x: x["Envío de datos"] == envio_de_datos][ps].any(axis=1).sum()
+    data_per_envio[envio_de_datos]["percent"] = data_per_envio[envio_de_datos]["errors"]/data_per_envio[envio_de_datos]["total"]
+
 tab1, tab2, tab3, tab4 = st.tabs(["Resumen", "Detalle", "Análisis", "Entregas"])
 
 with tab1:
@@ -205,10 +221,15 @@ with tab1:
 
     problems_catgories_selected_in_table = AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
 
+    st.write("**Porcentaje sobre total de entregas**")
+
     for column in problem_categories_counts.columns:
         if column == "Categoria":
             continue
-        problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total*1.0)
+        if column == "Entregas":
+            problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total*1.0)
+        else:
+            problem_categories_counts[column] = problem_categories_counts[column]/(data_per_envio[column]["total"]*1.0)
 
     grid_options_builder = GridOptionsBuilder.from_dataframe(problem_categories_counts)
     grid_options_builder.configure_pagination(enabled=True, paginationPageSize=60, paginationAutoPageSize=False)
@@ -218,13 +239,13 @@ with tab1:
     for column in problem_categories_counts.columns:
         if column == "Categoria":
             continue
-        grid_options_builder.configure_column(column, valueGetter=f"data.Entregas.toFixed(1)*100 + '%'")
+        grid_options_builder.configure_column(column, valueGetter=f"(data['{column}']*100).toFixed(1) + '%'")
         #grid_options_builder.configure_column(column, valueGetter=f"(data.Entregas.toFixed(1)*100) + '%')")
         #grid_options_builder.configure_column(column, valueGetter=f"(data.Envio_1.toFixed(1)*100) + '%')")
     go = grid_options_builder.build()
     #print(go)
 
-    #AgGrid(problem_categories_counts, go, fit_columns_on_grid_load=True)
+    AgGrid(problem_categories_counts, go, fit_columns_on_grid_load=True)
 
 with tab2:
 
@@ -234,20 +255,6 @@ with tab2:
     
 
 with tab3:
-
-    # Compute percent of problems for all envios de datos
-    data_per_envio = {}
-    for envio_de_datos in envios_de_datos:
-        if envio_de_datos == "Todos":
-            continue
-        data_per_envio[envio_de_datos] = {}
-        data_per_envio[envio_de_datos]["total"] = data_quality_wide.loc[lambda x: x["Envío de datos"] == envio_de_datos].count()[0]
-        if problems_selected:
-            ps = problems_selected
-        else:
-            ps = problem_columns
-        data_per_envio[envio_de_datos]["errors"] = data_quality_wide.loc[lambda x: x["Envío de datos"] == envio_de_datos][ps].any(axis=1).sum()
-        data_per_envio[envio_de_datos]["percent"] = data_per_envio[envio_de_datos]["errors"]/data_per_envio[envio_de_datos]["total"]
 
     st.altair_chart(plot_errors_per_envio(data_per_envio))
 
