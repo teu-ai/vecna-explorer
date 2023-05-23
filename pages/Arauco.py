@@ -56,6 +56,7 @@ with col1_a:
         data_quality_wide = load_data_quality()
     else:
         data_quality_wide = load_data_quality_historic(data_source)
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6'])]
 
 #if ARAUCO:
     errors = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
