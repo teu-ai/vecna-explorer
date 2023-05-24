@@ -7,6 +7,7 @@ import altair as alt
 import components
 
 ARAUCO = True
+ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8']
 
 setup_ambient()
 
@@ -27,7 +28,7 @@ def load_data_quality_historic(datetime) -> pd.DataFrame:
 def plot_errors_per_envio(data):
     source = pd.DataFrame(data).T.reset_index().rename(columns={"index":"Envío de datos"})
     source = source.reset_index().rename(columns={"index":"N"})
-    source["Fecha"] = [datetime(2023,3,31),datetime(2023,4,7),datetime(2023,4,14),datetime(2023,4,21),datetime(2023,4,28),datetime(2023,5,5)]
+    source["Fecha"] = [datetime(2023,3,31),datetime(2023,4,7),datetime(2023,4,14),datetime(2023,4,21),datetime(2023,4,28),datetime(2023,5,5),datetime(2023,5,19),datetime(2023,5,19)]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
         y=alt.Y("percent",title="Porcentaje de entregas con comentarios")
@@ -56,7 +57,7 @@ with col1_a:
         data_quality_wide = load_data_quality()
     else:
         data_quality_wide = load_data_quality_historic(data_source)
-    data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6'])]
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
 
 #if ARAUCO:
     errors = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
@@ -86,12 +87,12 @@ with col2_b:
 # Filtered
 
 problem_columns_categories_map = {
-    "Zarpe":[
+    "1. Zarpe POL":[
         "W. Sin ETD",
         "W. ETD en el pasado sin ATD",
         "W. Sin ATD y ya zarpó",
         "W. ATD >= ETA"],
-    "Trasbordo":[
+    "2. Trasbordo":[
         "W. TR1 sin ETA",
         "W. Gran error ETA TR1 - ATA TR1",
         "W. ETA TR1 = ETD Total",
@@ -116,20 +117,20 @@ problem_columns_categories_map = {
         "W. ETA TR4 < ETD Total",
         "W. ETA TR4 = ETA Total",
         "W. ETA TR4 > ETA Total"],
-    "Fecha de llegada":[
+    "3. Fecha de llegada POD":[
         "W. Sin ETA",
         "W. ETA en el pasado sin ATA",
         "W. Con ATA, pero no Finalizado o Arribado"],
-    "Descarga":[
+    "4. Descarga POD":[
         "W. Sin POD Descarga, Finalizado",
         "W. POD Descarga < ATA"
     ],
-    "Empty return":[
-        "W. Sin devolución, Finalizado",
-        "W. Devuelto vacío < POD Descarga"
-    ],
-    "Out of gate":[
+    "5. Out of gate POD":[
 
+    ],
+    "6. Empty return":[
+        #"W. Sin devolución, Finalizado",
+        #"W. Devuelto vacío < POD Descarga"
     ],
     "Otros comentarios":[
         "W. Sin POL",
@@ -241,8 +242,6 @@ with tab1:
         if column == "Categoria":
             continue
         grid_options_builder.configure_column(column, valueGetter=f"(data['{column}']*100).toFixed(1) + '%'")
-        #grid_options_builder.configure_column(column, valueGetter=f"(data.Entregas.toFixed(1)*100) + '%')")
-        #grid_options_builder.configure_column(column, valueGetter=f"(data.Envio_1.toFixed(1)*100) + '%')")
     go = grid_options_builder.build()
     #print(go)
 
