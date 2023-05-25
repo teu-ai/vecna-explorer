@@ -7,7 +7,7 @@ import altair as alt
 import components
 
 ARAUCO = True
-ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7']
+ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8']
 
 setup_ambient()
 
@@ -28,7 +28,7 @@ def load_data_quality_historic(datetime) -> pd.DataFrame:
 def plot_errors_per_envio(data):
     source = pd.DataFrame(data).T.reset_index().rename(columns={"index":"Envío de datos"})
     source = source.reset_index().rename(columns={"index":"N"})
-    source["Fecha"] = [datetime(2023,3,31),datetime(2023,4,7),datetime(2023,4,14),datetime(2023,4,21),datetime(2023,4,28),datetime(2023,5,5),datetime(2023,5,19)]
+    source["Fecha"] = [datetime(2023,3,31),datetime(2023,4,7),datetime(2023,4,14),datetime(2023,4,21),datetime(2023,4,28),datetime(2023,5,5),datetime(2023,5,19),datetime(2023,5,19)]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
         y=alt.Y("percent",title="Porcentaje de entregas con comentarios")
@@ -124,6 +124,7 @@ problem_columns_categories_map = {
     "4. Descarga POD":[
         "W. Sin POD Descarga, Finalizado",
         "W. POD Descarga < ATA"
+        #Agregar estimado.
     ],
     "5. Out of gate POD":[
 
