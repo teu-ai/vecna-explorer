@@ -84,7 +84,17 @@ with col2_b:
     # Choose which problems to show
     problems_selected = st.multiselect("Comentarios", problem_columns, default=st.session_state.problems_selected_in_table, help="Un Comentario es una observación sobre coherencia y completitud de los datos.")
 
+# Select if to show a specific warning
+
+col1_c, col2_c = st.columns([1,1])
+
+with col1_c:
+    pod_descarga_estimada = st.checkbox("Descartar 'Sin POD Descarga estimada'", value=True, help="Descartar comentario verificando que exista estimación de descarga en destino")
+
 # Filtered
+
+if pod_descarga_estimada:
+    problem_columns.remove("W. Sin POD Descarga estimada")
 
 problem_columns_categories_map = {
     "1. Zarpe POL":[
@@ -123,6 +133,7 @@ problem_columns_categories_map = {
         "W. Con ATA, pero no Finalizado o Arribado"],
     "4. Descarga POD":[
         "W. Sin POD Descarga, Finalizado",
+        "W. Sin POD Descarga estimada",
         "W. POD Descarga < ATA"
     ],
     "5. Out of gate POD":[
@@ -142,6 +153,13 @@ problem_columns_categories_map = {
     ],
     "Total":problem_columns
 }
+
+if pod_descarga_estimada:
+    problem_columns_categories_map["4. Descarga POD"] = [
+        "W. Sin POD Descarga, Finalizado",
+        "W. POD Descarga < ATA"
+    ]
+
 problem_columns_categories = problem_columns_categories_map.keys()
 problem_columns_categories_list = {v:k for k in problem_columns_categories_map for v in problem_columns_categories_map[k]}
 
@@ -149,6 +167,10 @@ for k, v in problem_columns_categories_map.items():
     data_quality_wide[k] = data_quality_wide[v].any(axis=1)
 
 data_quality_wide_filtered = data_quality_wide.copy()
+
+if pod_descarga_estimada:
+    data_quality_wide = data_quality_wide.drop(columns=["W. Sin POD Descarga estimada"])
+    data_quality_wide_filtered = data_quality_wide_filtered.drop(columns=["W. Sin POD Descarga estimada"])
 
 # Filter the data based on the Envío de datos selected
 if selected_envio_de_datos != "Todos":
