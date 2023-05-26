@@ -60,7 +60,7 @@ with col2_a:
     selected_envios_de_datos = st.multiselect(
         "Envíos de datos",
         envios_de_datos,
-        default=envios_de_datos,
+        default=envios_de_datos[6:],
         help="Un Envío de dato corresponde a un conjunto de datos que se envía a KLog.co desde Arauco.")
 
 # Select entregas to show
@@ -69,9 +69,22 @@ entregas_selected = st.multiselect("Entregas", data_quality_wide["Entrega"].drop
 # Select warnings to show or ignore
 col1_c, col2_c = st.columns([1,1])
 
+# Compute and filter out errors
+considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
+
 # Not subscribed
 data_quality_wide_not_subscribed = data_quality_wide.loc[lambda x: x["W. No tiene suscripción"] == 1]
-print(data_quality_wide_not_subscribed)
+entregas_not_subscribed = data_quality_wide_not_subscribed["Entrega"].unique().tolist()
+if not considerar_entregas_con_errores:
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Entrega"].apply(lambda y: y not in entregas_not_subscribed)]
+
+# Container not in BL
+containers_by_subscription = load.load_containers_by_subscription("prod")
+containers_by_subscription = containers_by_subscription.groupby('subscription_id')["vecna_event_container"].apply(list).to_dict()
+containers_not_in_subscriptions = data_quality_wide.loc[lambda x: x.apply(lambda y: y["Contenedor"] not in containers_by_subscription.get(str(y["subscriptionId"]),[]),axis=1)].copy()
+if not considerar_entregas_con_errores:
+    c = containers_not_in_subscriptions["Contenedor"].unique().tolist()
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Contenedor"].apply(lambda y: y not in c)]
 
 # Global ignore of warnings
 columns = [x for x in data_quality_wide.columns if x not in PROBLEMS_TO_IGNORE]
@@ -179,6 +192,11 @@ if problems_selected:
     for problem in problems_selected:
         data_quality_wide_filtered = data_quality_wide_filtered.loc[lambda x: x[problem] == 1]
 
+# Filter the data based on the entrega selected.
+if entregas_selected:
+    data_quality_wide_filtered = data_quality_wide_filtered.loc[lambda x: x["Entrega"].apply(lambda y: y in entregas_selected)]
+
+
 documentation = {"W. ETD en el pasado sin ATD": "La fecha estimada de salida (ETD) es anterior a la fecha actual, y todavía no hay ATD.",
                  "W. Con ATA, pero no Finalizado o Arribado": "El estado del embarque no es coherente con el hecho de que exista una fecha de arribo (ATA)."}
 
@@ -198,17 +216,7 @@ for envio_de_datos in envios_de_datos:
 
 
 
-
-
-containers_by_subscription = load.load_containers_by_subscription("prod")
-containers_by_subscription = containers_by_subscription.groupby('subscription_id')["vecna_event_container"].apply(list).to_dict()
-#print(list(containers_by_subscription.loc[lambda x: x["subscription_id"] == "109067228"]["vecna_event_container"].unique()))
-#data_quality_wide.apply(lambda x: x[""])
-containers_not_in_subscriptions = data_quality_wide.loc[lambda x: x.apply(lambda y: y["Contenedor"] not in containers_by_subscription.get(str(y["subscriptionId"]),[]),axis=1)].copy()
-
-
-
-
+# Main
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Resumen", "Errores", "Detalle", "Análisis", "Entregas"])
 
@@ -261,7 +269,7 @@ with tab1:
         if column == "Categoria":
             continue
         if column == "Entregas":
-            problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total*1.0)
+            problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total_filtered*1.0)
         else:
             problem_categories_counts[column] = problem_categories_counts[column]/(data_per_envio[column]["total"]*1.0)
 
@@ -281,6 +289,8 @@ with tab1:
 
 with tab2:
 
+    st.write("A continuación se muestran las entregas con errores críticos, es decir, aquellos que no permiten obtener información de las entregas.")
+
     st.write("**Subscription status = 0**")
 
     AgGrid(data_quality_wide_not_subscribed[["Entrega","MBL","Contenedor","Envío de datos"]], agrid_options(data_quality_wide_not_subscribed[["Entrega","MBL","Contenedor","Envío de datos"]], 60))
@@ -294,6 +304,17 @@ with tab3:
     st.write("**Detalle por comentario y entrega**")
 
     AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
+
+    st.write("**Detalle por entrega comentarios**")
+
+    # Drop columns from data_quality_wide_filtered where all values are 0
+    data_quality_wide_filtered_details = data_quality_wide_filtered.loc[:, (data_quality_wide_filtered != 0).any(axis=0)]
+    w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
+    c = ["Entrega"] + w_c
+    data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
+    # Add column with total of row
+    data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
+    AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
     
 
 with tab4:
@@ -321,7 +342,14 @@ with tab5:
         "ETA Inicial (Sch)","ETA Final Date (Sch)","ETA Final (Sch)","ATA (Sch)"] + problem_columns
     data_quality_columns = [x for x in data_quality_wide_filtered.columns if x not in data_quality_columns_out]
     data_quality_columns_default = ["Entrega","Estado","MBL","Contenedor","Cliente"] + data_quality_columns_from_problem
-    data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
+
+    c1, c2 = st.columns([1,3])
+    with c1:
+        all_errors = st.checkbox("Mostrar todos los errores", value=False)
+        #if all_errors:
+        #    data_quality_columns_default += problem_columns
+    with c2:
+        data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
 
     # Show the data
     data_quality_main = data_quality_wide_filtered[data_quality_columns_selected]
