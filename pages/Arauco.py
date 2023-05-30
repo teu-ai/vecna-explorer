@@ -8,7 +8,7 @@ import components
 import load
 
 ARAUCO = True
-ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8']
+ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9']
 PROBLEMS_TO_IGNORE = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
 
 setup_ambient()
@@ -18,7 +18,16 @@ setup_ambient()
 def plot_errors_per_envio(data):
     source = pd.DataFrame(data).T.reset_index().rename(columns={"index":"Envío de datos"})
     source = source.reset_index().rename(columns={"index":"N"})
-    source["Fecha"] = [datetime(2023,3,31),datetime(2023,4,7),datetime(2023,4,14),datetime(2023,4,21),datetime(2023,4,28),datetime(2023,5,5),datetime(2023,5,19),datetime(2023,5,19)]
+    source["Fecha"] = [
+        datetime(2023,3,31),
+        datetime(2023,4,7),
+        datetime(2023,4,14),
+        datetime(2023,4,21),
+        datetime(2023,4,28),
+        datetime(2023,5,5),
+        datetime(2023,5,19),
+        datetime(2023,5,19),
+        datetime(2023,5,26)]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
         y=alt.Y("percent",title="Porcentaje de entregas con comentarios")
