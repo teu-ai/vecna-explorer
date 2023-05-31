@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import json
 import pandas as pd
@@ -283,3 +284,17 @@ def load_data_quality_historic(date, client="Arauco") -> pd.DataFrame:
     if client == "Arauco":
         data = load_csv_s3("klog-lake","raw/arauco_snapshots/",f"{date.strftime('%Y%m%d')}-arauco_snapshot.csv")
     return data
+
+@st.cache_data
+def load_itinerarios():
+    # Read all json files from data directory
+    data_dir = "data/"
+    files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f)) and f.endswith(".json")]
+    data = []
+    for file in files:
+        # Read JSON
+        with open(data_dir+file) as f:
+            d = json.load(f)
+            data += [d]
+    results = [i for sublist in [d["results"] for d in data] for i in sublist]
+    return pd.DataFrame(results)

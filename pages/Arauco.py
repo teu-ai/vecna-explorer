@@ -81,6 +81,10 @@ col1_c, col2_c = st.columns([1,1])
 # Compute and filter out errors
 considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
 
+sin_msc = st.checkbox("Sin MSC", value=True, help="Sin MSC.")
+if sin_msc:
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Naviera"] != 'MSC']
+
 # Not subscribed
 data_quality_wide_not_subscribed = data_quality_wide.loc[lambda x: x["W. No tiene suscripción"] == 1]
 entregas_not_subscribed = data_quality_wide_not_subscribed["Entrega"].unique().tolist()
