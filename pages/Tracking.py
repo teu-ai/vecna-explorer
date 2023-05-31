@@ -5,30 +5,29 @@ from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from tools.tools import list_files_s3, load_csv_s3, agrid_options, setup_ambient
 import altair as alt
 import components
+import load
 
 ARAUCO = True
-ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8']
+ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9']
+PROBLEMS_TO_IGNORE = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
 
 setup_ambient()
-
-# Data
-
-@st.cache_data
-def load_data_quality() -> pd.DataFrame:
-    data = pd.read_csv(f"https://klog.metabaseapp.com/public/question/c2c3c38d-e8e6-4482-ab6c-33e3f9317cce.csv")
-    return data
-
-@st.cache_data
-def load_data_quality_historic(datetime) -> pd.DataFrame:
-    data = load_csv_s3("klog-lake","raw/arauco_snapshots/",f"{datetime.strftime('%Y%m%d')}-arauco_snapshot.csv")
-    return data
 
 # Plots
 
 def plot_errors_per_envio(data):
     source = pd.DataFrame(data).T.reset_index().rename(columns={"index":"Envío de datos"})
     source = source.reset_index().rename(columns={"index":"N"})
-    source["Fecha"] = [datetime(2023,3,31),datetime(2023,4,7),datetime(2023,4,14),datetime(2023,4,21),datetime(2023,4,28),datetime(2023,5,5),datetime(2023,5,19),datetime(2023,5,19)]
+    source["Fecha"] = [
+        datetime(2023,3,31),
+        datetime(2023,4,7),
+        datetime(2023,4,14),
+        datetime(2023,4,21),
+        datetime(2023,4,28),
+        datetime(2023,5,5),
+        datetime(2023,5,19),
+        datetime(2023,5,19),
+        datetime(2023,5,26)]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
         y=alt.Y("percent",title="Porcentaje de entregas con comentarios")
@@ -46,55 +45,90 @@ st.write("# Calidad de datos Arauco")
 
 # Filters
 
-col1_a, col2_a = st.columns([1,1])
+col1_a, col2_a = st.columns([1,2])
 
+# Choose between current data or historic
 with col1_a:
-    # Choose between current data or historic
     historic_data = list_files_s3("klog-lake","raw/arauco_snapshots/")
     historic_data_choice = [datetime.strptime(f.split("/")[-1].split("-")[0],"%Y%m%d") for f in historic_data[1:]]
-    data_source = st.selectbox("Fuente de datos", ["Actual"]+historic_data_choice, help="Fuente actual corresponde a datos en tiempo real; en los otros casos se trata de un snapshot de la base de datos en el pasado.")
+    data_source = st.selectbox(
+        "Fuente de datos",
+        ["Actual"]+historic_data_choice,
+        help="Fuente actual corresponde a datos en tiempo real; en los otros casos se trata de un snapshot de la base de datos en el pasado.")
+    
     if data_source == "Actual":
-        data_quality_wide = load_data_quality()
+        data_quality_wide = load.load_data_quality(client="Arauco")
     else:
-        data_quality_wide = load_data_quality_historic(data_source)
+        data_quality_wide = load.load_data_quality_historic(data_source, client="Arauco")
+
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
 
-#if ARAUCO:
-    errors = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
-    columns = [x for x in data_quality_wide.columns if x not in errors]
-    data_quality_wide = data_quality_wide[columns]
-
+# Create selectbox with Envío de datos
 with col2_a:
-    # Create selectbox with Envío de datos
-    envios_de_datos = ["Todos"] + data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()
-    selected_envio_de_datos = st.selectbox("Envío de datos", envios_de_datos, help="Un Envío de dato corresponde a un conjunto de datos que se envía a KLog.co desde Arauco.")
+    envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()
+    selected_envios_de_datos = st.multiselect(
+        "Envíos de datos",
+        envios_de_datos,
+        default=envios_de_datos[6:],
+        help="Un Envío de dato corresponde a un conjunto de datos que se envía a KLog.co desde Arauco.")
 
-col1_b, col2_b = st.columns([1,1])
+# Select entregas to show
+entregas_selected = st.multiselect("Entregas", data_quality_wide["Entrega"].drop_duplicates().tolist(), help="La Entrega corresponde al registro interno de Arauco para un embarque.")
 
-with col1_b:
-
-    # Select entregas to show
-    entregas_selected = st.multiselect("Entregas", data_quality_wide["Entrega"].drop_duplicates().tolist(), help="La Entrega corresponde al registro interno de Arauco para un embarque.")
-
-with col2_b:
-
-    # Get all columns that start with W., as they represent the problems.
-    problem_columns = [col for col in data_quality_wide.columns if col.startswith("W.")]
-
-    # Choose which problems to show
-    problems_selected = st.multiselect("Comentarios", problem_columns, default=st.session_state.problems_selected_in_table, help="Un Comentario es una observación sobre coherencia y completitud de los datos.")
-
-# Select if to show a specific warning
-
+# Select warnings to show or ignore
 col1_c, col2_c = st.columns([1,1])
 
+# Compute and filter out errors
+considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
+
+sin_msc = st.checkbox("Sin MSC", value=True, help="Sin MSC.")
+if sin_msc:
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Naviera"] != 'MSC']
+
+# Not subscribed
+data_quality_wide_not_subscribed = data_quality_wide.loc[lambda x: x["W. No tiene suscripción"] == 1]
+entregas_not_subscribed = data_quality_wide_not_subscribed["Entrega"].unique().tolist()
+if not considerar_entregas_con_errores:
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Entrega"].apply(lambda y: y not in entregas_not_subscribed)]
+
+# Container not in BL
+containers_by_subscription = load.load_containers_by_subscription("prod")
+containers_by_subscription = containers_by_subscription.groupby('subscription_id')["vecna_event_container"].apply(list).to_dict()
+containers_not_in_subscriptions = data_quality_wide.loc[lambda x: x.apply(lambda y: y["Contenedor"] not in containers_by_subscription.get(str(y["subscriptionId"]),[]),axis=1)].copy()
+if not considerar_entregas_con_errores:
+    c = containers_not_in_subscriptions["Contenedor"].unique().tolist()
+    data_quality_wide = data_quality_wide.loc[lambda x: x["Contenedor"].apply(lambda y: y not in c)]
+
+# Global ignore of warnings
+columns = [x for x in data_quality_wide.columns if x not in PROBLEMS_TO_IGNORE]
+data_quality_wide = data_quality_wide[columns]
+
+# Get all columns that start with W., as they represent the problems.
+problem_columns_all = [col for col in data_quality_wide.columns if col.startswith("W.")]
+
 with col1_c:
-    pod_descarga_estimada = st.checkbox("Descartar 'Sin POD Descarga estimada'", value=True, help="Descartar comentario verificando que exista estimación de descarga en destino")
+
+    # Choose which problems to show
+    problems_selected = st.multiselect(
+        "Comentarios",
+        problem_columns_all,
+        default=st.session_state.problems_selected_in_table,
+        help="Un Comentario es una observación sobre coherencia y completitud de los datos.")
+
+with col2_c:
+
+    # Comentarios a ignorar
+    problems_ignore_selected = st.multiselect(
+        "Comentarios a ignorar",
+        problem_columns_all,
+        default=["W. Sin POD Descarga estimada"],
+        help="Un Comentario es una observación sobre coherencia y completitud de los datos.")
+
+if problems_selected:
+    problem_columns = problems_selected
+problem_columns = [col for col in problem_columns_all if col not in problems_ignore_selected]
 
 # Filtered
-
-if pod_descarga_estimada:
-    problem_columns.remove("W. Sin POD Descarga estimada")
 
 problem_columns_categories_map = {
     "1. Zarpe POL":[
@@ -155,12 +189,6 @@ problem_columns_categories_map = {
     "Total":problem_columns
 }
 
-if pod_descarga_estimada:
-    problem_columns_categories_map["4. Descarga POD"] = [
-        "W. Sin POD Descarga, Finalizado",
-        "W. POD Descarga < ATA"
-    ]
-
 problem_columns_categories = problem_columns_categories_map.keys()
 problem_columns_categories_list = {v:k for k in problem_columns_categories_map for v in problem_columns_categories_map[k]}
 
@@ -169,23 +197,22 @@ for k, v in problem_columns_categories_map.items():
 
 data_quality_wide_filtered = data_quality_wide.copy()
 
-if pod_descarga_estimada:
-    data_quality_wide = data_quality_wide.drop(columns=["W. Sin POD Descarga estimada"])
-    data_quality_wide_filtered = data_quality_wide_filtered.drop(columns=["W. Sin POD Descarga estimada"])
-
 # Filter the data based on the Envío de datos selected
-if selected_envio_de_datos != "Todos":
-    data_quality_wide_filtered = data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == selected_envio_de_datos]
+if selected_envios_de_datos:
+    data_quality_wide_filtered = data_quality_wide_filtered.loc[lambda x: x.apply(lambda y: y["Envío de datos"] in selected_envios_de_datos, axis=1)]
 
 # Filter the data based on the problems selected.
 if problems_selected:
     for problem in problems_selected:
         data_quality_wide_filtered = data_quality_wide_filtered.loc[lambda x: x[problem] == 1]
 
+# Filter the data based on the entrega selected.
+if entregas_selected:
+    data_quality_wide_filtered = data_quality_wide_filtered.loc[lambda x: x["Entrega"].apply(lambda y: y in entregas_selected)]
+
+
 documentation = {"W. ETD en el pasado sin ATD": "La fecha estimada de salida (ETD) es anterior a la fecha actual, y todavía no hay ATD.",
                  "W. Con ATA, pero no Finalizado o Arribado": "El estado del embarque no es coherente con el hecho de que exista una fecha de arribo (ATA)."}
-
-
 
 # Compute percent of problems for all envios de datos
 data_per_envio = {}
@@ -201,7 +228,11 @@ for envio_de_datos in envios_de_datos:
     data_per_envio[envio_de_datos]["errors"] = data_quality_wide.loc[lambda x: x["Envío de datos"] == envio_de_datos][ps].any(axis=1).sum()
     data_per_envio[envio_de_datos]["percent"] = data_per_envio[envio_de_datos]["errors"]/data_per_envio[envio_de_datos]["total"]
 
-tab1, tab2, tab3, tab4 = st.tabs(["Resumen", "Detalle", "Análisis", "Entregas"])
+
+
+# Main
+
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Resumen", "Errores", "Detalle", "Análisis", "Entregas"])
 
 with tab1:
 
@@ -233,7 +264,7 @@ with tab1:
     problem_categories_counts = pd.DataFrame(problem_categories_counts, columns=["Entregas"])
 
     # Compute sums for each problem of each envío de datos.
-    for envio_de_datos in envios_de_datos:
+    for envio_de_datos in selected_envios_de_datos:
         if envio_de_datos == "Todos":
             continue
         problem_counts[envio_de_datos] = data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == envio_de_datos][problem_columns].sum()
@@ -252,7 +283,7 @@ with tab1:
         if column == "Categoria":
             continue
         if column == "Entregas":
-            problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total*1.0)
+            problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total_filtered*1.0)
         else:
             problem_categories_counts[column] = problem_categories_counts[column]/(data_per_envio[column]["total"]*1.0)
 
@@ -272,16 +303,39 @@ with tab1:
 
 with tab2:
 
-    st.write("**Detalle por comentario y entrega**")
+    st.write("A continuación se muestran las entregas con errores críticos, es decir, aquellos que no permiten obtener información de las entregas.")
 
-    AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
-    
+    st.write("**Subscription status = 0**")
+
+    AgGrid(data_quality_wide_not_subscribed[["Entrega","MBL","Contenedor","Envío de datos"]], agrid_options(data_quality_wide_not_subscribed[["Entrega","MBL","Contenedor","Envío de datos"]], 60))
+
+    st.write("**Contenedor en prisma no presente en eventos**")
+
+    AgGrid(containers_not_in_subscriptions[["Entrega","MBL","Contenedor","Envío de datos"]], agrid_options(containers_not_in_subscriptions[["Entrega","MBL","Contenedor","Envío de datos"]], 60))
 
 with tab3:
 
-    st.altair_chart(plot_errors_per_envio(data_per_envio))
+    st.write("**Detalle por comentario y entrega**")
+
+    AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
+
+    st.write("**Detalle por entrega comentarios**")
+
+    # Drop columns from data_quality_wide_filtered where all values are 0
+    data_quality_wide_filtered_details = data_quality_wide_filtered.loc[:, (data_quality_wide_filtered != 0).any(axis=0)]
+    w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
+    c = ["Entrega"] + w_c
+    data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
+    # Add column with total of row
+    data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
+    AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
+    
 
 with tab4:
+
+    st.altair_chart(plot_errors_per_envio(data_per_envio))
+
+with tab5:
 
     # Select columns based on the problem selected
     data_quality_columns_from_problem = []
@@ -302,7 +356,14 @@ with tab4:
         "ETA Inicial (Sch)","ETA Final Date (Sch)","ETA Final (Sch)","ATA (Sch)"] + problem_columns
     data_quality_columns = [x for x in data_quality_wide_filtered.columns if x not in data_quality_columns_out]
     data_quality_columns_default = ["Entrega","Estado","MBL","Contenedor","Cliente"] + data_quality_columns_from_problem
-    data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
+
+    c1, c2 = st.columns([1,3])
+    with c1:
+        all_errors = st.checkbox("Mostrar todos los errores", value=False)
+        #if all_errors:
+        #    data_quality_columns_default += problem_columns
+    with c2:
+        data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
 
     # Show the data
     data_quality_main = data_quality_wide_filtered[data_quality_columns_selected]
