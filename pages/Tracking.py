@@ -169,6 +169,7 @@ problem_columns_categories_map = {
         "W. Sin POD Descarga, Finalizado",
         "W. Sin POD Descarga estimada",
         "W. POD Descarga < ATA"
+        #Agregar estimado.
     ],
     "5. Out of gate POD":[
 
