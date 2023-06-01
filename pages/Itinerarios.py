@@ -48,4 +48,4 @@ st.download_button(
 columns = ['carrier', 'carrier_scac', 'pol', 'pod', 'etd', 'etd_local', 'eta', 'eta_local',
    'cyclosing', 'transshipment_count', 'transhipments', 'transhipments_name', 'vessel', 'transit_time']
 
-AgGrid(df[columns], agrid_options(df[columns], 20), fit_columns_on_grid_load=True)
+AgGrid(df[columns], agrid_options(df[columns], 20))
