@@ -14,7 +14,8 @@ st.write("# Itinerarios")
 
 df = load_itinerarios()
 
-df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["scac"])
+df.loc[:,"carrier_scac"] = df.loc[:,"carrier"].apply(lambda x: x["scac"])
+df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["short_name"])
 df.loc[:,"pol"] = df.loc[:,"pol"].apply(lambda x: x["locode"])
 df.loc[:,"pod"] = df.loc[:,"pod"].apply(lambda x: x["locode"])
 # Drop alliance column
@@ -44,4 +45,7 @@ st.download_button(
    key='download-csv'
 )
 
-AgGrid(df, agrid_options(df, 20), fit_columns_on_grid_load=True)
+columns = ['carrier', 'carrier_scac', 'pol', 'pod', 'etd', 'etd_local', 'eta', 'eta_local',
+   'cyclosing', 'transshipment_count', 'transhipments', 'transhipments_name', 'vessel', 'transit_time']
+
+AgGrid(df[columns], agrid_options(df[columns], 20), fit_columns_on_grid_load=True)
