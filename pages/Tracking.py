@@ -323,12 +323,15 @@ with tab3:
 
     # Drop columns from data_quality_wide_filtered where all values are 0
     data_quality_wide_filtered_details = data_quality_wide_filtered.loc[:, (data_quality_wide_filtered != 0).any(axis=0)]
-    w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
-    c = ["Entrega"] + w_c
-    data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
-    # Add column with total of row
-    data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
-    AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
+    if len(data_quality_wide_filtered_details) == 0:
+        st.write("Entregas filtradas no tienen comentarios")
+    else:
+        w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
+        c = list(["Entrega"] + w_c)
+        data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
+        # Add column with total of row
+        data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
+        AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
     
 
 with tab4:
