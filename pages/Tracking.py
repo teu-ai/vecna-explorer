@@ -369,7 +369,9 @@ with tab5:
         data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
 
     # Show the data
-    data_quality_main = data_quality_wide_filtered[data_quality_columns_selected]
+    data_quality_wide_filtered["Total W"] = data_quality_wide_filtered[problem_columns].sum(axis=1)
+    data_quality_main = data_quality_wide_filtered[data_quality_columns_selected+["Total W"]]
+    # Sum over all columns that start with W
 
     selected_entregas = AgGrid(data_quality_main, agrid_options(data_quality_main, 30), columns_auto_size_mode=1, allow_unsafe_jscode=1, allow_unsafe_html=1)
 
