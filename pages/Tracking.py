@@ -373,11 +373,12 @@ with tab5:
     data_quality_main = data_quality_wide_filtered[data_quality_columns_selected+["Total W"]]
     # Sum over all columns that start with W
 
-    selected_entregas = AgGrid(data_quality_main, agrid_options(data_quality_main, 30), columns_auto_size_mode=1, allow_unsafe_jscode=1, allow_unsafe_html=1)
+    selected_entregas = AgGrid(data_quality_main, agrid_options(data_quality_main, 15), columns_auto_size_mode=1, allow_unsafe_jscode=1, allow_unsafe_html=1)
 
     if selected_entregas and len(selected_entregas["selected_rows"])>0:
         selected_entrega = selected_entregas["selected_rows"][0]["Entrega"]
         selected_mbl = selected_entregas["selected_rows"][0]["MBL"]
+        selected_container = selected_entregas["selected_rows"][0]["Contenedor"]
         selected_subscription_id = str(data_quality_wide_filtered.loc[lambda x: x["MBL"] == selected_mbl, "subscriptionId"].values[0])
         st.session_state.selected_entrega = selected_entrega
         st.session_state.mbl = selected_mbl
@@ -385,7 +386,18 @@ with tab5:
 
         if ARAUCO:
         
-            components.show_data_sources(selected_entregas, selected_subscription_id, vecna_dynamo=False)
+            events_rows = load.load_events_vecna("mbl",selected_mbl,"prod")
+                # Vecna S3
+            if events_rows["raw_event_oi"].values[0] and events_rows["raw_event_oi"].values[0] != "subscription":
+                event_raw = load.load_event_raw(events_rows["raw_event_oi"].values[0], "oceaninsights/")
+            else:
+                event_raw = {}
+            if events_rows["raw_event_gh"].values[0] and events_rows["raw_event_gh"].values[0] != "subscription":
+                event_raw = load.load_event_raw(events_rows["raw_event_gh"].values[0], "ghmaritime/")
+            else:
+                event_raw = {}
+            
+            components.show_data_sources(selected_entregas, selected_subscription_id, vecna_dynamo=False, events_s3=True, event_raw=event_raw)
 
         if not ARAUCO:
 
