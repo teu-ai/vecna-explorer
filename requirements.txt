@@ -8,3 +8,5 @@ sqlalchemy
 sqlalchemy-redshift
 boto3
 psycopg2-binary
+pyxlsb
+xlsxwriter
