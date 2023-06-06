@@ -323,12 +323,15 @@ with tab3:
 
     # Drop columns from data_quality_wide_filtered where all values are 0
     data_quality_wide_filtered_details = data_quality_wide_filtered.loc[:, (data_quality_wide_filtered != 0).any(axis=0)]
-    w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
-    c = ["Entrega"] + w_c
-    data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
-    # Add column with total of row
-    data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
-    AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
+    if len(data_quality_wide_filtered_details) == 0:
+        st.write("Entregas filtradas no tienen comentarios")
+    else:
+        w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
+        c = list(["Entrega"] + w_c)
+        data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
+        # Add column with total of row
+        data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
+        AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
     
 
 with tab4:
@@ -366,7 +369,9 @@ with tab5:
         data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
 
     # Show the data
-    data_quality_main = data_quality_wide_filtered[data_quality_columns_selected]
+    data_quality_wide_filtered["Total W"] = data_quality_wide_filtered[problem_columns].sum(axis=1)
+    data_quality_main = data_quality_wide_filtered[data_quality_columns_selected+["Total W"]]
+    # Sum over all columns that start with W
 
     selected_entregas = AgGrid(data_quality_main, agrid_options(data_quality_main, 30), columns_auto_size_mode=1, allow_unsafe_jscode=1, allow_unsafe_html=1)
 
