@@ -16,6 +16,7 @@ df = load_itinerarios()
 
 df.loc[:,"carrier_scac"] = df.loc[:,"carrier"].apply(lambda x: x["scac"])
 df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["short_name"])
+df.loc[:,"pol_name"] = df.loc[:,"pol"].apply(lambda x: x["name"])
 df.loc[:,"pol"] = df.loc[:,"pol"].apply(lambda x: x["locode"])
 df.loc[:,"pod"] = df.loc[:,"pod"].apply(lambda x: x["locode"])
 # Drop alliance column
@@ -33,6 +34,9 @@ for i in range(len(df["legs"])):
 df.loc[:,"vessel"] = df.loc[:,"legs"].apply(lambda x: [y["vessel"]["shipname"] for y in x])
 # Drop legs column
 df = df.drop(columns=["legs"])
+
+# Leave only the following ports: Coronel – Lirquén – San Vicente – San Antonio – Valparaíso
+df = df[df["pol_name"].isin(["Coronel","Lirquén","San Vicente","Talcahuano","Talcahuano - San Vicente","San Antonio","Valparaíso"])]
 
 def convert_df_to_csv(df):
    return df.to_csv(index=False).encode('utf-8')
@@ -83,6 +87,7 @@ with col2:
 columns = [
    'carrier'
    ,'pol'
+   ,'pol_name'
    ,'pod'
    ,'eta'
    ,'etd'
