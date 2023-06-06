@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import load
 import json
 
@@ -14,7 +15,7 @@ def show_shipment_prisma(selected_subscription_id = None, rows_to_highlight = []
         
         st.dataframe(shipment_prisma.style.apply(color_coding, axis=1), height=2000)
 
-def show_data_sources(event_id:str, subscription_id:str, events_s3:bool = False, vecna_db:bool = False, vecna_dynamo:bool = True, vecna_api:bool = True):
+def show_data_sources(event_id:str, subscription_id:str, events_s3:bool = False, vecna_db:bool = False, vecna_dynamo:bool = True, vecna_api:bool = True, event_raw=None):
     # Data sources
 
     sources = []
@@ -31,33 +32,15 @@ def show_data_sources(event_id:str, subscription_id:str, events_s3:bool = False,
     c = 0
 
     if events_s3:
-
-        # Vecna S3
-        if event["raw_event_oi"].values[0] and event["raw_event_oi"].values[0] != "subscription":
-            event_oi_raw = load.load_event_raw(event["raw_event_oi"].values[0], "oceaninsights/")
-        else:
-            event_oi_raw = {}
-        if event["raw_event_gh"].values[0] and event["raw_event_gh"].values[0] != "subscription":
-            event_gh_raw = load.load_event_raw(event["raw_event_gh"].values[0], "ghmaritime/")
-        else:
-            event_gh_raw = {}
-
         with tabs[c]:
-            col1, col2 = st.columns([1,1])
-            with col1:
-                st.write("Ocean Insights")
-                if event_oi_raw == {}:
-                    st.warning("File not found")
-                else:
-                    st.json(event_oi_raw)
-            with col2:
-                st.write("Gatehouse")
-                if event_gh_raw == {}:
-                    st.warning("File not found")
-                else:
-                    st.json(event_gh_raw)
+            st.write("Evento")
+            if event_raw == {}:
+                st.warning("File not found")
+            else:
+                st.json(event_raw)
+            st.dataframe(pd.DataFrame(event_raw["events"]))
         c += 1
-
+        
     if vecna_db:
         event = load.load_event_vecna("prod", event_id)
         event_vecna_gh_text = event["vecna_event_gh"].values[0]
