@@ -63,8 +63,6 @@ with col1_a:
     else:
         data_quality_wide = load.load_data_quality_historic(data_source, client="Arauco")
 
-    print(data_quality_wide)
-
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
 
 # Create selectbox with Envío de datos
@@ -301,7 +299,6 @@ with tab1:
             continue
         grid_options_builder.configure_column(column, valueGetter=f"(data['{column}']*100).toFixed(1) + '%'")
     go = grid_options_builder.build()
-    #print(go)
 
     AgGrid(problem_categories_counts, go, fit_columns_on_grid_load=True)
 

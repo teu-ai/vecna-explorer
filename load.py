@@ -11,7 +11,6 @@ def create_warehouse_engine(env):
         conn_bd = f"postgresql://{st.secrets['wh_username']}:{st.secrets['wh_password']}@{st.secrets['wh_host']}:{st.secrets['wh_port']}/{st.secrets['wh_db']}"
     elif env == "staging":
         conn_bd = f"postgresql://{st.secrets['wh_username']}:{st.secrets['wh_password']}@{st.secrets['wh_host']}:{st.secrets['wh_port']}/{st.secrets['wh_db']}"
-    print(conn_bd)
     return create_engine(conn_bd)
 
 def create_warehouse_vecna_engine(env):
@@ -163,7 +162,6 @@ def load_events_vecna(doctype, doc, env):
             "public"."prod_vecna_event_consolidated"
         {where}
         '''
-    print(query)
     events = pd.read_sql_query(query, warehouse_engine)
     return events
 
