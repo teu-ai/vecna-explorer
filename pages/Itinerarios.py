@@ -41,20 +41,20 @@ df = df[df["pol_name"].isin(["Coronel","Lirquén","San Vicente","Talcahuano","Ta
 def convert_df_to_csv(df):
    return df.to_csv(index=False).encode('utf-8')
 
-def convert_df_to_excel(df):
-   from io import BytesIO
-   from pyxlsb import open_workbook as open_xlsb
-   import streamlit as st
-   output = BytesIO()
-   writer = pd.ExcelWriter(output, engine='xlsxwriter')
-   df.to_excel(writer, index=False, sheet_name='Sheet1')
-   workbook = writer.book
-   worksheet = writer.sheets['Sheet1']
-   format1 = workbook.add_format({'num_format': '0.00'}) 
-   worksheet.set_column('A:A', None, format1)  
-   writer.save()
-   processed_data = output.getvalue()
-   return processed_data
+#def convert_df_to_excel(df):
+#   from io import BytesIO
+#   from pyxlsb import open_workbook as open_xlsb
+#   import streamlit as st
+#   output = BytesIO()
+#   writer = pd.ExcelWriter(output, engine='xlsxwriter')
+#   df.to_excel(writer, index=False, sheet_name='Sheet1')
+#   workbook = writer.book
+#   worksheet = writer.sheets['Sheet1']
+#   format1 = workbook.add_format({'num_format': '0.00'}) 
+#   worksheet.set_column('A:A', None, format1)  
+#   writer.save()
+#   processed_data = output.getvalue()
+#   return processed_data
 
 # Remove timezone of all datetime columns in df
 print(df.columns)
@@ -64,7 +64,7 @@ df.loc[:,"etd_local"] = df.loc[:,"etd_local"].apply(lambda x: x.replace(tzinfo=N
 df.loc[:,"eta_local"] = df.loc[:,"eta_local"].apply(lambda x: x.replace(tzinfo=None))
 
 csv = convert_df_to_csv(df)
-xlsx = convert_df_to_excel(df)
+#xlsx = convert_df_to_excel(df)
 
 _, col1, col2 = st.columns([4,1,1])
 
@@ -77,12 +77,12 @@ with col1:
       key='download-csv'
       )
 
-with col2:
-   st.download_button(
-      label='Descargar en Excel',
-      data=xlsx ,
-      file_name='itinerarios.xlsx'
-      )
+#with col2:
+#   st.download_button(
+#      label='Descargar en Excel',
+#      data=xlsx ,
+#      file_name='itinerarios.xlsx'
+#      )
 
 columns = [
    'carrier'
