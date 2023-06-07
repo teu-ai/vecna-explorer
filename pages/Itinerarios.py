@@ -66,7 +66,7 @@ df.loc[:,"eta_local"] = df.loc[:,"eta_local"].apply(lambda x: x.replace(tzinfo=N
 csv = convert_df_to_csv(df)
 #xlsx = convert_df_to_excel(df)
 
-_, col1, col2 = st.columns([4,1,1])
+_, col1, col2 = st.columns([2,1,1])
 
 with col1:
    st.download_button(
