@@ -145,8 +145,8 @@ where
     '''
     return pd.read_sql_query(query, prisma_engine)
 
-@st.cache_data
 def load_events_vecna(doctype, doc, env):
+
     if doctype == "mbl":
         where = f"where \"subscription_bl\" = '{doc}'"
     elif doctype == "container":
@@ -154,12 +154,12 @@ def load_events_vecna(doctype, doc, env):
     elif doctype == "booking":
         where = f"where \"subscription_booking\" = '{doc}'"
 
-    warehouse_engine = create_warehouse_engine()
+    warehouse_engine = create_warehouse_vecna_engine(env)
     query = f'''
         select
             *
         from
-            "staging"."stg_vecna_event_consolidated_2"
+            "public"."prod_vecna_event_consolidated"
         {where}
         '''
     events = pd.read_sql_query(query, warehouse_engine)
@@ -231,7 +231,6 @@ def load_event_raw(filename, path):
 
     if len(obj) != 0:
         j = json.load(io.BytesIO(obj['Body'].read()))
-        #j = obj['Body'].read().decode('utf-8') 
     else:
         j = {}
     return j

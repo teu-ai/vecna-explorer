@@ -8,7 +8,8 @@ import components
 import load
 
 ARAUCO = True
-ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9']
+AMBIENT = st.secrets['ambient']
+ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9', 'Envío 10']
 PROBLEMS_TO_IGNORE = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
 
 setup_ambient()
@@ -27,7 +28,8 @@ def plot_errors_per_envio(data):
         datetime(2023,5,5),
         datetime(2023,5,19),
         datetime(2023,5,19),
-        datetime(2023,5,26)]
+        datetime(2023,5,26),
+        datetime(2023,6,1)]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
         y=alt.Y("percent",title="Porcentaje de entregas con comentarios")
@@ -297,7 +299,6 @@ with tab1:
             continue
         grid_options_builder.configure_column(column, valueGetter=f"(data['{column}']*100).toFixed(1) + '%'")
     go = grid_options_builder.build()
-    #print(go)
 
     AgGrid(problem_categories_counts, go, fit_columns_on_grid_load=True)
 
@@ -323,12 +324,15 @@ with tab3:
 
     # Drop columns from data_quality_wide_filtered where all values are 0
     data_quality_wide_filtered_details = data_quality_wide_filtered.loc[:, (data_quality_wide_filtered != 0).any(axis=0)]
-    w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
-    c = ["Entrega"] + w_c
-    data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
-    # Add column with total of row
-    data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
-    AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
+    if len(data_quality_wide_filtered_details) == 0:
+        st.write("Entregas filtradas no tienen comentarios")
+    else:
+        w_c = [x for x in data_quality_wide_filtered_details.columns.tolist() if x[0] == 'W']
+        c = list(["Entrega"] + w_c)
+        data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
+        # Add column with total of row
+        data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
+        AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
     
 
 with tab4:
@@ -366,13 +370,16 @@ with tab5:
         data_quality_columns_selected = st.multiselect("Columnas", data_quality_columns, default=data_quality_columns_default)
 
     # Show the data
-    data_quality_main = data_quality_wide_filtered[data_quality_columns_selected]
+    data_quality_wide_filtered["Total W"] = data_quality_wide_filtered[problem_columns].sum(axis=1)
+    data_quality_main = data_quality_wide_filtered[data_quality_columns_selected+["Total W"]]
+    # Sum over all columns that start with W
 
-    selected_entregas = AgGrid(data_quality_main, agrid_options(data_quality_main, 30), columns_auto_size_mode=1, allow_unsafe_jscode=1, allow_unsafe_html=1)
+    selected_entregas = AgGrid(data_quality_main, agrid_options(data_quality_main, 15), columns_auto_size_mode=1, allow_unsafe_jscode=1, allow_unsafe_html=1)
 
     if selected_entregas and len(selected_entregas["selected_rows"])>0:
         selected_entrega = selected_entregas["selected_rows"][0]["Entrega"]
         selected_mbl = selected_entregas["selected_rows"][0]["MBL"]
+        selected_container = selected_entregas["selected_rows"][0]["Contenedor"]
         selected_subscription_id = str(data_quality_wide_filtered.loc[lambda x: x["MBL"] == selected_mbl, "subscriptionId"].values[0])
         st.session_state.selected_entrega = selected_entrega
         st.session_state.mbl = selected_mbl
@@ -380,7 +387,21 @@ with tab5:
 
         if ARAUCO:
         
-            components.show_data_sources(selected_entregas, selected_subscription_id, vecna_dynamo=False)
+            events_rows = load.load_events_vecna("mbl",selected_mbl,"prod")
+                # Vecna S3
+            if events_rows["raw_event_oi"].values[0] and events_rows["raw_event_oi"].values[0] != "subscription":
+                event_raw = load.load_event_raw(events_rows["raw_event_oi"].values[0], "oceaninsights/")
+            else:
+                event_raw = {}
+            if events_rows["raw_event_gh"].values[0] and events_rows["raw_event_gh"].values[0] != "subscription":
+                event_raw = load.load_event_raw(events_rows["raw_event_gh"].values[0], "ghmaritime/")
+            else:
+                event_raw = {}
+            
+            if AMBIENT == "dev":
+                components.show_data_sources(selected_entregas, selected_subscription_id, vecna_dynamo=False, events_s3=True, event_raw=event_raw)
+            elif AMBIENT == "prod":
+                components.show_data_sources(selected_entregas, selected_subscription_id, vecna_dynamo=False, events_s3=False, event_raw=event_raw)
 
         if not ARAUCO:
 
