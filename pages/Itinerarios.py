@@ -53,6 +53,7 @@ def load_itinerarios():
 
    # Leave only the following ports: Coronel – Lirquén – San Vicente – San Antonio – Valparaíso
    df = df[df["pol_name"].isin(["Coronel","Lirquén","San Vicente","Talcahuano","Talcahuano (San Vicente)","San Antonio","Valparaiso"])].copy()
+   df = df[df["carrier_scac"].isin(["CMDU","COSU","EGLV","EVRG","HLCU","SUDU","MSCU","MAEU","ONEY","ZIMU"])].copy()
 
    return df
 
