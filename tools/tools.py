@@ -5,16 +5,20 @@ from st_aggrid import GridOptionsBuilder
 
 # Config
 
+def agrid_options_raw(dataframe, page_size):
+    grid_options_builder = GridOptionsBuilder.from_dataframe(dataframe)
+    grid_options_builder.configure_pagination(enabled=True, paginationPageSize=page_size, paginationAutoPageSize=False)
+    grid_options_builder.configure_default_column(floatingFilter=True, selectable=False)
+    grid_options_builder.configure_grid_options(domLayout='normal')
+    grid_options_builder.configure_selection("single")
+    return grid_options_builder
+
 def agrid_options(dataframe, page_size):
     grid_options_builder = GridOptionsBuilder.from_dataframe(dataframe)
     grid_options_builder.configure_pagination(enabled=True, paginationPageSize=page_size, paginationAutoPageSize=False)
     grid_options_builder.configure_default_column(floatingFilter=True, selectable=False)
     grid_options_builder.configure_grid_options(domLayout='normal')
     grid_options_builder.configure_selection("single")
-    #grid_options_builder.configure_column("Entrega",
-    #                    headerName="Entrega",
-    #                    cellRenderer=JsCode('''function(params) {return '<a href="https://www.google.com">${params.value}</a>'}'''))
-    #grid_options_builder.configure_column("Categoria",rowGroup=True)
     return grid_options_builder.build()
 
 def list_files_s3(bucket:str, path:str):
