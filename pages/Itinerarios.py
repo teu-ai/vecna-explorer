@@ -3,6 +3,7 @@ from load import load_itinerarios
 from tools.tools import setup_ambient, agrid_options
 from st_aggrid import AgGrid
 import pandas as pd
+import duckdb
 
 ARAUCO = True
 
@@ -12,7 +13,11 @@ st.set_page_config(layout="wide")
 
 st.write("# Itinerarios")
 
-df = load_itinerarios()
+#df = load_itinerarios()
+
+con = duckdb.connect('itineraries.db')
+#con.sql("CREATE TABLE itineraries AS SELECT * FROM df")
+df = con.execute("SELECT * FROM itineraries").fetchdf()
 
 df.loc[:,"carrier_scac"] = df.loc[:,"carrier"].apply(lambda x: x["scac"])
 df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["short_name"])
