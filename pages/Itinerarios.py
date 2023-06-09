@@ -15,30 +15,48 @@ st.write("# Itinerarios")
 
 #df = load_itinerarios()
 
-con = duckdb.connect('itineraries.db')
-#con.sql("CREATE TABLE itineraries AS SELECT * FROM df")
-df = con.execute("SELECT * FROM itineraries").fetchdf()
+@st.cache_data
+def load_itinerarios():
+   con = duckdb.connect('itineraries.db')
+   df = con.execute("SELECT * FROM itineraries").fetchdf()
 
-df.loc[:,"carrier_scac"] = df.loc[:,"carrier"].apply(lambda x: x["scac"])
-df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["short_name"])
-df.loc[:,"pol_name"] = df.loc[:,"pol"].apply(lambda x: x["name"])
-df.loc[:,"pol"] = df.loc[:,"pol"].apply(lambda x: x["locode"])
-df.loc[:,"pod"] = df.loc[:,"pod"].apply(lambda x: x["locode"])
-# Drop alliance column
-df = df.drop(columns=["alliance","uuid_p2p","p2p_id","id"])
-# Transform timestamp to datetime
-df["etd"] = df["etd"].apply(lambda x: pd.to_datetime(x))
-df["eta"] = df["eta"].apply(lambda x: pd.to_datetime(x))
-df["etd_local"] = df["etd_local"].apply(lambda x: pd.to_datetime(x))
-df["eta_local"] = df["eta_local"].apply(lambda x: pd.to_datetime(x))
-# 
-df.loc[:,"transhipments"] = df.loc[:,"legs"].apply(lambda x: [[y["pol"]["locode"]+"-"+y["pod"]["locode"]] for y in x])
-df.loc[:,"transhipments_name"] = df.loc[:,"legs"].apply(lambda x: [[y["pol"]["name"]+"-"+y["pod"]["name"]] for y in x])
-for i in range(5):
-   df["transhipments_name_"+str(i)] = df["legs"].apply(lambda x: x[i]["pod"]["name"] if len(x)>i else None)
-df.loc[:,"vessel"] = df.loc[:,"legs"].apply(lambda x: [y["vessel"]["shipname"] for y in x])
-# Drop legs column
-df = df.drop(columns=["legs"])
+   df.loc[:,"carrier_scac"] = df.loc[:,"carrier"].apply(lambda x: x["scac"])
+   df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["short_name"])
+   df.loc[:,"pol_name"] = df.loc[:,"pol"].apply(lambda x: x["name"])
+   df.loc[:,"pol"] = df.loc[:,"pol"].apply(lambda x: x["locode"])
+   df.loc[:,"pod"] = df.loc[:,"pod"].apply(lambda x: x["locode"])
+   
+   # Drop alliance column
+   df = df.drop(columns=["alliance","uuid_p2p","p2p_id","id"])
+   
+   # Transform timestamp to datetime
+   df["etd"] = df["etd"].apply(lambda x: pd.to_datetime(x))
+   df["eta"] = df["eta"].apply(lambda x: pd.to_datetime(x))
+   df["etd_local"] = df["etd_local"].apply(lambda x: pd.to_datetime(x))
+   df["eta_local"] = df["eta_local"].apply(lambda x: pd.to_datetime(x))
+   
+   # Transhipments
+   df.loc[:,"transhipments"] = df.loc[:,"legs"].apply(lambda x: [[y["pol"]["locode"]+"-"+y["pod"]["locode"]] for y in x])
+   df.loc[:,"transhipments_name"] = df.loc[:,"legs"].apply(lambda x: [[y["pol"]["name"]+"-"+y["pod"]["name"]] for y in x])
+   for i in range(5):
+      df["transhipments_name_"+str(i)] = df["legs"].apply(lambda x: x[i]["pod"]["name"] if len(x)>i else None)
+   df.loc[:,"vessel"] = df.loc[:,"legs"].apply(lambda x: [y["vessel"]["shipname"] for y in x])
+
+   # Drop legs column
+   df = df.drop(columns=["legs"])
+
+   # Remove timezone of all datetime columns in df
+   df["etd"] = df["etd"].apply(lambda x: x.replace(tzinfo=None))
+   df["eta"] = df["eta"].apply(lambda x: x.replace(tzinfo=None))
+   df["etd_local"] = df["etd_local"].apply(lambda x: x.replace(tzinfo=None))
+   df["eta_local"] = df["eta_local"].apply(lambda x: x.replace(tzinfo=None))
+
+   # Leave only the following ports: Coronel – Lirquén – San Vicente – San Antonio – Valparaíso
+   df = df[df["pol_name"].isin(["Coronel","Lirquén","San Vicente","Talcahuano","Talcahuano (San Vicente)","San Antonio","Valparaiso"])].copy()
+
+   return df
+
+df = load_itinerarios()
 
 def convert_df_to_csv(df):
    return df.to_csv(index=False).encode('utf-8')
@@ -57,15 +75,6 @@ def convert_df_to_csv(df):
 #   writer.save()
 #   processed_data = output.getvalue()
 #   return processed_data
-
-# Remove timezone of all datetime columns in df
-df["etd"] = df["etd"].apply(lambda x: x.replace(tzinfo=None))
-df["eta"] = df["eta"].apply(lambda x: x.replace(tzinfo=None))
-df["etd_local"] = df["etd_local"].apply(lambda x: x.replace(tzinfo=None))
-df["eta_local"] = df["eta_local"].apply(lambda x: x.replace(tzinfo=None))
-
-# Leave only the following ports: Coronel – Lirquén – San Vicente – San Antonio – Valparaíso
-df = df[df["pol_name"].isin(["Coronel","Lirquén","San Vicente","Talcahuano","Talcahuano - San Vicente","San Antonio","Valparaíso"])].copy()
 
 csv = convert_df_to_csv(df)
 #xlsx = convert_df_to_excel(df)
