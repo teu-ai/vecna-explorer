@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
-from tools.tools import list_files_s3, load_csv_s3, agrid_options, setup_ambient
+from tools.tools import list_files_s3, load_csv_s3, agrid_options, agrid_options_raw, setup_ambient
 import altair as alt
 import components
 import load
@@ -39,9 +39,6 @@ def plot_errors_per_envio(data):
 # App
 
 st.set_page_config(layout="wide", page_title = "Calidad de datos")
-
-if 'problems_selected_in_table' not in st.session_state:
-    st.session_state.problems_selected_in_table = []
 
 st.write("# Calidad de datos Arauco")
 
@@ -83,7 +80,7 @@ col1_c, col2_c = st.columns([1,1])
 # Compute and filter out errors
 considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
 
-sin_msc = st.checkbox("Sin MSC", value=True, help="Sin MSC.")
+sin_msc = st.checkbox("Sin MSC", value=False, help="Sin MSC.")
 if sin_msc:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Naviera"] != 'MSC']
 
@@ -114,7 +111,6 @@ with col1_c:
     problems_selected = st.multiselect(
         "Comentarios",
         problem_columns_all,
-        default=st.session_state.problems_selected_in_table,
         help="Un Comentario es una observación sobre coherencia y completitud de los datos.")
 
 with col2_c:
@@ -123,7 +119,7 @@ with col2_c:
     problems_ignore_selected = st.multiselect(
         "Comentarios a ignorar",
         problem_columns_all,
-        default=["W. Sin POD Descarga estimada"],
+        #default=["W. Sin POD Descarga estimada"],
         help="Un Comentario es una observación sobre coherencia y completitud de los datos.")
 
 if problems_selected:
@@ -162,23 +158,36 @@ problem_columns_categories_map = {
         "W. ETA TR4 = ETD Total",
         "W. ETA TR4 < ETD Total",
         "W. ETA TR4 = ETA Total",
-        "W. ETA TR4 > ETA Total"],
+        "W. ETA TR4 > ETA Total",
+        "W. Atasco Transbordo",
+        "W. TS1 = TS2",
+        "W. TS2 = TS3",
+        "W. TS3 = TS4",
+        "W. TS2 < TS1",
+        "W. TS2 < TS1",
+        "W. TS3 < TS2",
+        "W. TS4 < TS3",
+        "W. Port TS1 = Port TS2",
+        "W. Port TS2 = Port TS3",
+        "W. Port TS3 = Port TS4"
+    ],
     "3. Fecha de llegada POD":[
         "W. Sin ETA",
+        "W. ETD >= ETA",
         "W. ETA en el pasado sin ATA",
-        "W. Con ATA, pero no Finalizado o Arribado"],
+        "W. Con ATA, pero no Finalizado o Arribado"
+    ],
     "4. Descarga POD":[
         "W. Sin POD Descarga, Finalizado",
         "W. Sin POD Descarga estimada",
         "W. POD Descarga < ATA"
-        #Agregar estimado.
     ],
     "5. Out of gate POD":[
 
     ],
     "6. Empty return":[
-        #"W. Sin devolución, Finalizado",
-        #"W. Devuelto vacío < POD Descarga"
+        "W. Sin devolución, Finalizado",
+        "W. Devuelto vacío < POD Descarga"
     ],
     "Otros comentarios":[
         "W. Sin POL",
@@ -186,16 +195,16 @@ problem_columns_categories_map = {
         "W. POL = POD",
         "W. Sin nave",
         "W. Sin viaje",
-        "W. Sin naviera"
+        "W. Sin naviera",
     ],
     "Total":problem_columns
 }
 
 problem_columns_categories = problem_columns_categories_map.keys()
-problem_columns_categories_list = {v:k for k in problem_columns_categories_map for v in problem_columns_categories_map[k]}
+problem_columns_categories_list = {v:k for k in problem_columns_categories_map for v in problem_columns_categories_map[k] if k != "Total"}
 
 for k, v in problem_columns_categories_map.items():
-    data_quality_wide[k] = data_quality_wide[v].any(axis=1)
+    data_quality_wide[k] = data_quality_wide[v].sum(axis=1)
 
 data_quality_wide_filtered = data_quality_wide.copy()
 
@@ -212,6 +221,8 @@ if problems_selected:
 if entregas_selected:
     data_quality_wide_filtered = data_quality_wide_filtered.loc[lambda x: x["Entrega"].apply(lambda y: y in entregas_selected)]
 
+for k, v in problem_columns_categories_map.items():
+    data_quality_wide_filtered[k] = data_quality_wide_filtered[v].sum(axis=1)
 
 documentation = {"W. ETD en el pasado sin ATD": "La fecha estimada de salida (ETD) es anterior a la fecha actual, y todavía no hay ATD.",
                  "W. Con ATA, pero no Finalizado o Arribado": "El estado del embarque no es coherente con el hecho de que exista una fecha de arribo (ATA)."}
@@ -238,32 +249,47 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Resumen", "Errores", "Detalle", "Análi
 
 with tab1:
 
-    # Show the total number of rows with at least one problem.
+    # Summary table
+    #def summary_table():
     entregas_total = data_quality_wide.count()[0]
     entregas_total_filtered = data_quality_wide_filtered.count()[0]
 
     entregas_with_problems = data_quality_wide[problem_columns].any(axis=1).sum()
     entregas_with_problems_filtered = data_quality_wide_filtered[problem_columns].any(axis=1).sum()
 
+    problems_total = data_quality_wide[problem_columns].sum().sum()
+    problems_total_filtered = data_quality_wide_filtered[problem_columns].sum().sum()
+
     df = pd.DataFrame([
-        [entregas_total,entregas_total_filtered],
-        [entregas_with_problems,entregas_with_problems_filtered],
-        [round(entregas_with_problems*1.0/entregas_total*1000.0)/10.0 if entregas_total != 0 else 0,
-         round(entregas_with_problems_filtered*1.0/entregas_total_filtered*1000.0)/10.0 if entregas_total_filtered != 0 else 0]],columns=["Total","Filtradas"],
-        index=["Entregas","Entregas con comentarios","% con comentarios"])
+            [entregas_total, entregas_total_filtered],
+            [entregas_with_problems, entregas_with_problems_filtered],
+            [round(entregas_with_problems*1.0/entregas_total*1000.0)/10.0 if entregas_total != 0 else 0,
+                round(entregas_with_problems_filtered*1.0/entregas_total_filtered*1000.0)/10.0 if entregas_total_filtered != 0 else 0],
+            [problems_total, problems_total_filtered]
+        ],columns=["Total","Filtradas"],
+        index=["Entregas","Entregas con comentarios","% Entregas con comentarios","Comentarios"])
+
+    st.write("**Tabla resumen**")
+
     st.dataframe(df)
+    
+    #summary_table()
 
     # Get how many times each problem appears.
     problem_counts = data_quality_wide_filtered[problem_columns].sum()
     problem_categories_counts = data_quality_wide_filtered[problem_columns_categories].sum()
 
+    entregas_with_problems_counts = data_quality_wide_filtered[problem_columns].sum()
+    entregas_with_problems_categories_counts = (data_quality_wide_filtered[problem_columns_categories] >= 1).sum()
+    
     # Transform the counts into a dataframe.
     if problems_selected:
         problem_counts = pd.DataFrame(problem_counts[problems_selected], columns=["Entregas"])
     else:
         problem_counts = pd.DataFrame(problem_counts, columns=["Entregas"])
 
-    problem_categories_counts = pd.DataFrame(problem_categories_counts, columns=["Entregas"])
+    problem_categories_counts = pd.DataFrame(problem_categories_counts, columns=["Comentarios"])
+    entregas_with_problems_categories_counts = pd.DataFrame(entregas_with_problems_categories_counts, columns=["Entregas"])
 
     # Compute sums for each problem of each envío de datos.
     for envio_de_datos in selected_envios_de_datos:
@@ -271,36 +297,59 @@ with tab1:
             continue
         problem_counts[envio_de_datos] = data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == envio_de_datos][problem_columns].sum()
         problem_categories_counts[envio_de_datos] = data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == envio_de_datos][problem_columns_categories].sum()
+        entregas_with_problems_categories_counts[envio_de_datos] = (data_quality_wide_filtered.loc[lambda x: x["Envío de datos"] == envio_de_datos][problem_columns_categories] >= 1).sum()
 
     problem_counts = problem_counts.reset_index().rename(columns={"index":"Comentario"})
     problem_categories_counts = problem_categories_counts.reset_index().rename(columns={"index":"Categoria"})
+    entregas_with_problems_categories_counts = entregas_with_problems_categories_counts.reset_index().rename(columns={"index":"Categoria"})
 
-    st.write("**Comentarios por hitos**")
+    tab11, tab21 = st.tabs(["Entregas", "Comentarios"])
 
-    problems_catgories_selected_in_table = AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
+    with tab11:
 
-    st.write("**Porcentaje sobre total de entregas**")
+        st.write("**Cantidad de entregas con al menos un comentario, por etapa**")
 
-    for column in problem_categories_counts.columns:
-        if column == "Categoria":
-            continue
-        if column == "Entregas":
-            problem_categories_counts[column] = problem_categories_counts[column]/(entregas_total_filtered*1.0)
-        else:
-            problem_categories_counts[column] = problem_categories_counts[column]/(data_per_envio[column]["total"]*1.0)
+        AgGrid(entregas_with_problems_categories_counts, agrid_options(entregas_with_problems_categories_counts, 60), fit_columns_on_grid_load=True)
 
-    grid_options_builder = GridOptionsBuilder.from_dataframe(problem_categories_counts)
-    grid_options_builder.configure_pagination(enabled=True, paginationPageSize=60, paginationAutoPageSize=False)
-    grid_options_builder.configure_default_column(floatingFilter=True, selectable=False)
-    grid_options_builder.configure_grid_options(domLayout='normal')
-    grid_options_builder.configure_selection("single")
-    for column in problem_categories_counts.columns:
-        if column == "Categoria":
-            continue
-        grid_options_builder.configure_column(column, valueGetter=f"(data['{column}']*100).toFixed(1) + '%'")
-    go = grid_options_builder.build()
+        st.write("**Porcentaje de entregas con al menos un comentario, por etapa**")
 
-    AgGrid(problem_categories_counts, go, fit_columns_on_grid_load=True)
+        for column in entregas_with_problems_categories_counts.columns:
+            if column == "Categoria":
+                continue
+            if column == "Entregas":
+                entregas_with_problems_categories_counts[column] = entregas_with_problems_categories_counts[column]/(entregas_total_filtered*1.0)
+            else:
+                entregas_with_problems_categories_counts[column] = entregas_with_problems_categories_counts[column]/(data_per_envio[column]["total"]*1.0)
+
+        grid_options_builder = agrid_options_raw(entregas_with_problems_categories_counts, 60)
+        for column in entregas_with_problems_categories_counts.columns:
+            if column == "Categoria":
+                continue
+            grid_options_builder.configure_column(column, valueGetter=f"(data['{column}']*100).toFixed(1) + '%'")
+        AgGrid(entregas_with_problems_categories_counts, grid_options_builder.build(), fit_columns_on_grid_load=True)
+
+    with tab21:
+
+        st.write("**Cantidad de comentarios, por etapa**")
+
+        AgGrid(problem_categories_counts, agrid_options(problem_categories_counts, 60), fit_columns_on_grid_load=True)
+
+        st.write("**Porcentaje de comentarios por etapa sobre total de comentarios**")
+
+        for column in problem_categories_counts.columns:
+            if column == "Categoria":
+                continue
+            if column == "Comentarios":
+                problem_categories_counts[column] = problem_categories_counts[column]/(problem_categories_counts[column].iloc[-1]*1.0)
+            else:
+                problem_categories_counts[column] = problem_categories_counts[column]/(problem_categories_counts[column].iloc[-1]*1.0)
+
+        grid_options_builder = agrid_options_raw(problem_categories_counts, 60)
+        for column in problem_categories_counts.columns:
+            if column == "Categoria":
+                continue
+            grid_options_builder.configure_column(column, valueGetter=f"(data['{column}']*100).toFixed(1) + '%'")
+        AgGrid(problem_categories_counts, grid_options_builder.build(), fit_columns_on_grid_load=True)
 
 with tab2:
 
@@ -318,12 +367,17 @@ with tab3:
 
     st.write("**Detalle por comentario y entrega**")
 
+    problem_counts["Etapa"] = problem_counts["Comentario"].apply(lambda x: problem_columns_categories_list[x] if x in problem_columns_categories_list.keys() else "ETC")
+    problem_counts = problem_counts[["Comentario","Etapa"]+[x for x in problem_counts.columns if x not in ["Comentario","Etapa"]]]
+
     AgGrid(problem_counts, agrid_options(problem_counts, 60), fit_columns_on_grid_load=True)
 
     st.write("**Detalle por entrega comentarios**")
 
     # Drop columns from data_quality_wide_filtered where all values are 0
     data_quality_wide_filtered_details = data_quality_wide_filtered.loc[:, (data_quality_wide_filtered != 0).any(axis=0)]
+    # Select entregas that have at least one comment
+
     if len(data_quality_wide_filtered_details) == 0:
         st.write("Entregas filtradas no tienen comentarios")
     else:
@@ -332,6 +386,7 @@ with tab3:
         data_quality_wide_filtered_details = data_quality_wide_filtered_details[c]
         # Add column with total of row
         data_quality_wide_filtered_details["Total"] = data_quality_wide_filtered_details[w_c].sum(axis=1)
+        data_quality_wide_filtered_details = data_quality_wide_filtered_details.loc[lambda x: x["Total"]>0]
         AgGrid(data_quality_wide_filtered_details, agrid_options(data_quality_wide_filtered_details, 20), fit_columns_on_grid_load=True)
     
 

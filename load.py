@@ -294,6 +294,8 @@ def load_itinerarios():
         # Read JSON
         with open(data_dir+file) as f:
             d = json.load(f)
+            if "results" not in d.keys():
+                continue
             data += [d]
     results = [i for sublist in [d["results"] for d in data] for i in sublist]
     return pd.DataFrame(results)
