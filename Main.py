@@ -11,6 +11,6 @@ setup_ambient()
 
 st.write("# Integraciones de datos KLog.co")
 
-st.write("Bienvenido al centro de integración de dato.")
+st.write("Bienvenido al centro de integración de datos.")
 
 st.write("En el menú de la izquierda podrá encontrar el reporte de calidad de datos.")
