@@ -47,7 +47,7 @@ st.write("# Calidad de datos Arauco")
 
 col1_a, col2_a = st.columns([1,2])
 
-# Choose between current data or historic
+# Choose between current data / historic
 with col1_a:
     historic_data = list_files_s3("klog-lake","raw/arauco_snapshots/")
     historic_data_choice = [datetime.strptime(f.split("/")[-1].split("-")[0],"%Y%m%d") for f in historic_data[1:]]
