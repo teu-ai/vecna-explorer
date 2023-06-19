@@ -9,7 +9,7 @@ import load
 
 ARAUCO = True
 AMBIENT = st.secrets['ambient']
-ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9', 'Envío 10']
+ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9', 'Envío 10', 'Envío 11']
 PROBLEMS_TO_IGNORE = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
 
 setup_ambient()
@@ -29,7 +29,8 @@ def plot_errors_per_envio(data):
         datetime(2023,5,19),
         datetime(2023,5,19),
         datetime(2023,5,26),
-        datetime(2023,6,1)]
+        datetime(2023,6,1),
+        datetime(2023,6,12)]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
         y=alt.Y("percent",title="Porcentaje de entregas con comentarios")
@@ -46,7 +47,7 @@ st.write("# Calidad de datos Arauco")
 
 col1_a, col2_a = st.columns([1,2])
 
-# Choose between current data or historic
+# Choose between current data / historic
 with col1_a:
     historic_data = list_files_s3("klog-lake","raw/arauco_snapshots/")
     historic_data_choice = [datetime.strptime(f.split("/")[-1].split("-")[0],"%Y%m%d") for f in historic_data[1:]]
