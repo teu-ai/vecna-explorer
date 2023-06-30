@@ -7,6 +7,9 @@ import altair as alt
 import components
 import load
 
+# Comment: change line below to submit changes to github
+# Commited on 201306301000
+
 ARAUCO = True
 AMBIENT = st.secrets['ambient']
 ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9', 'Envío 10', 'Envío 11', 'Envío 12']
