@@ -12,8 +12,30 @@ import load
 
 ARAUCO = True
 AMBIENT = st.secrets['ambient']
-ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9', 'Envío 10', 'Envío 11', 'Envío 12']
-PROBLEMS_TO_IGNORE = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
+ENVIOS = [
+    'Envío 1',
+    'Envío 2',
+    'Envío 3',
+    'Envío 4',
+    'Envío 5',
+    'Envío 6',
+    'Envío 7',
+    'Envío 8',
+    'Envío 9',
+    'Envío 10',
+    'Envío 11',
+    'Envío 12',
+    'Envío 13',
+    'Envío 14'        
+]
+PROBLEMS_TO_IGNORE = [
+    "W. Sin BL",
+    "W. Sin contenedor",
+    "W. Iniciando",
+    "W. No tiene suscripción",
+    "W. ATD e Iniciando",
+    "W. Sin ATA ni ETA"
+]
 
 setup_ambient()
 
@@ -34,7 +56,9 @@ def plot_errors_per_envio(data):
         datetime(2023,5,26),
         datetime(2023,6,1),
         datetime(2023,6,12),
-        datetime(2023,6,19)
+        datetime(2023,6,19),
+        datetime(2023,6,30),
+        datetime(2023,6,30)
     ]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
