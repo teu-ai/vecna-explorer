@@ -9,7 +9,7 @@ import load
 
 ARAUCO = True
 AMBIENT = st.secrets['ambient']
-ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9', 'Envío 10', 'Envío 11']
+ENVIOS = ['Envío 1','Envío 2','Envío 3','Envío 4','Envío 5','Envío 6', 'Envío 7', 'Envío 8', 'Envío 9', 'Envío 10', 'Envío 11', 'Envío 12']
 PROBLEMS_TO_IGNORE = ["W. Sin BL","W. Sin contenedor", "W. Iniciando","W. No tiene suscripción","W. ATD e Iniciando","W. Sin ATA ni ETA"]
 
 setup_ambient()
@@ -30,7 +30,8 @@ def plot_errors_per_envio(data):
         datetime(2023,5,19),
         datetime(2023,5,26),
         datetime(2023,6,1),
-        datetime(2023,6,12)]
+        datetime(2023,6,12),
+        datetime(2023,6,22)]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
         y=alt.Y("percent",title="Porcentaje de entregas con comentarios")
@@ -444,7 +445,8 @@ with tab5:
         if ARAUCO:
         
             events_rows = load.load_events_vecna("mbl",selected_mbl,"prod")
-                # Vecna S3
+            
+            # Vecna S3
             if events_rows["raw_event_oi"].values[0] and events_rows["raw_event_oi"].values[0] != "subscription":
                 event_raw = load.load_event_raw(events_rows["raw_event_oi"].values[0], "oceaninsights/")
             else:
@@ -454,6 +456,8 @@ with tab5:
             else:
                 event_raw = {}
             
+            print(events_rows["raw_event_gh"].values[0])
+
             if AMBIENT == "dev":
                 components.show_data_sources(selected_entregas, selected_subscription_id, vecna_dynamo=False, events_s3=True, event_raw=event_raw)
             elif AMBIENT == "prod":
