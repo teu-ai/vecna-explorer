@@ -24,6 +24,7 @@ def load_itinerarios():
    df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["short_name"])
    df.loc[:,"pol_name"] = df.loc[:,"pol"].apply(lambda x: x["name"])
    df.loc[:,"pol"] = df.loc[:,"pol"].apply(lambda x: x["locode"])
+   df.loc[:,"pod_name"] = df.loc[:,"pod"].apply(lambda x: x["name"])
    df.loc[:,"pod"] = df.loc[:,"pod"].apply(lambda x: x["locode"])
    
    # Drop alliance column
@@ -39,8 +40,12 @@ def load_itinerarios():
    df.loc[:,"transhipments"] = df.loc[:,"legs"].apply(lambda x: [[y["pol"]["locode"]+"-"+y["pod"]["locode"]] for y in x])
    df.loc[:,"transhipments_name"] = df.loc[:,"legs"].apply(lambda x: [[y["pol"]["name"]+"-"+y["pod"]["name"]] for y in x])
    for i in range(5):
-      df["transhipments_name_"+str(i)] = df["legs"].apply(lambda x: x[i]["pod"]["name"] if len(x)>i else None)
+      df["transhipments_name_"+str(i+1)] = df["legs"].apply(lambda x: x[i]["pod"]["name"] if len(x)>i+1 else None)
+   df["transhipments_name_1"] = df["transhipments_name_1"].apply(lambda x: x if x is not None else "DIRECT")
    df.loc[:,"vessel"] = df.loc[:,"legs"].apply(lambda x: [y["vessel"]["shipname"] for y in x])
+
+   # Services
+   df["service"] = df.apply(lambda y: [x["service_name"] for x in y["legs"]], axis=1)
 
    # Drop legs column
    df = df.drop(columns=["legs"])
@@ -50,6 +55,8 @@ def load_itinerarios():
    df["eta"] = df["eta"].apply(lambda x: x.replace(tzinfo=None))
    df["etd_local"] = df["etd_local"].apply(lambda x: x.replace(tzinfo=None))
    df["eta_local"] = df["eta_local"].apply(lambda x: x.replace(tzinfo=None))
+
+   #df["a"] = df.apply(lambda x: (x["pod_name"] == x['transhipments_name_1'])|(x["pod_name"] == x['transhipments_name_2']),axis=1)
 
    # Leave only the following ports: Coronel – Lirquén – San Vicente – San Antonio – Valparaíso
    df = df[df["pol_name"].isin(["Coronel","Lirquén","San Vicente","Talcahuano","Talcahuano (San Vicente)","San Antonio","Valparaiso"])].copy()
@@ -103,6 +110,7 @@ columns = [
    ,'pol'
    ,'pol_name'
    ,'pod'
+   ,'pod_name'
    ,'eta'
    ,'etd'
    ,'transshipment_count'
@@ -113,6 +121,7 @@ columns = [
    ,'transhipments_name_3'
    ,'transhipments_name_4'
    ,'vessel'
+   ,'service'
    ]
 
 AgGrid(df[columns], agrid_options(df[columns], 20))
