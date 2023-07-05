@@ -456,8 +456,6 @@ with tab5:
             else:
                 event_raw = {}
             
-            print(events_rows["raw_event_gh"].values[0])
-
             if AMBIENT == "dev":
                 components.show_data_sources(selected_entregas, selected_subscription_id, vecna_dynamo=False, events_s3=True, event_raw=event_raw)
             elif AMBIENT == "prod":
