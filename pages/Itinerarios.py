@@ -67,6 +67,26 @@ def load_itinerarios():
 df = load_itinerarios()
 
 def convert_df_to_csv(df):
+
+   cols_in = [
+      "carrier",
+      "pol",
+      "pol_name",
+      "pod",
+      "eta",
+      "etd",
+      "transshipment_count",
+      "transit_time",
+      "transhipments_name_1",
+      "transhipments_name_2",
+      "transhipments_name_3",
+      "transhipments_name_4",
+      "vessel"
+   ]
+
+   df = df[cols_in]
+   print(df.shape)
+
    return df.to_csv(index=False).encode('utf-8')
 
 #def convert_df_to_excel(df):
