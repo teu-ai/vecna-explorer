@@ -73,6 +73,7 @@ def convert_df_to_csv(df):
       "pol",
       "pol_name",
       "pod",
+      "pod_name",
       "eta",
       "etd",
       "transshipment_count",
@@ -81,7 +82,8 @@ def convert_df_to_csv(df):
       "transhipments_name_2",
       "transhipments_name_3",
       "transhipments_name_4",
-      "vessel"
+      "vessel",
+      "service"
    ]
 
    df = df[cols_in]
