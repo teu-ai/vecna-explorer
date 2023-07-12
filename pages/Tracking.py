@@ -98,7 +98,7 @@ with col2_a:
     selected_envios_de_datos = st.multiselect(
         "Envíos de datos",
         envios_de_datos,
-        default=envios_de_datos[6:],
+        default=envios_de_datos[8:],
         help="Un Envío de dato corresponde a un conjunto de datos que se envía a KLog.co desde Arauco.")
 
 # Select entregas to show
@@ -193,7 +193,6 @@ problem_columns_categories_map = {
         "W. TS1 = TS2",
         "W. TS2 = TS3",
         "W. TS3 = TS4",
-        "W. TS2 < TS1",
         "W. TS2 < TS1",
         "W. TS3 < TS2",
         "W. TS4 < TS3",

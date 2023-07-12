@@ -11,14 +11,18 @@ setup_ambient()
 
 st.set_page_config(layout="wide")
 
-st.write("# Itinerarios")
-
-#df = load_itinerarios()
-
 @st.cache_data
-def load_itinerarios():
+def load_itinerarios(month):
    con = duckdb.connect('itineraries.db')
-   df = con.execute("SELECT * FROM itineraries").fetchdf()
+   df = con.execute(f"""
+                     SELECT
+                        *
+                     FROM
+                        itineraries
+                     WHERE
+                        date_part('year', (replace(left(etd,position('+' in etd)-1),'T',' ') || ':00')::timestamp) = 2023 and
+                        date_part('month',(replace(left(etd,position('+' in etd)-1),'T',' ') || ':00')::timestamp) = {month}
+                    """).fetchdf()
 
    df.loc[:,"carrier_scac"] = df.loc[:,"carrier"].apply(lambda x: x["scac"])
    df.loc[:,"carrier"] = df.loc[:,"carrier"].apply(lambda x: x["short_name"])
@@ -64,86 +68,104 @@ def load_itinerarios():
 
    return df
 
-df = load_itinerarios()
+def convert_df_to_csv(df, columns):
+   df2 = df[columns].copy()
+   return df2.to_csv(index=False,sep=";",quotechar='"').encode('utf-8')
 
-def convert_df_to_csv(df):
+st.write("# Itinerarios")
 
-   cols_in = [
-      "carrier",
-      "pol",
-      "pol_name",
-      "pod",
-      "pod_name",
-      "eta",
-      "etd",
-      "transshipment_count",
-      "transit_time",
-      "transhipments_name_1",
-      "transhipments_name_2",
-      "transhipments_name_3",
-      "transhipments_name_4",
-      "vessel",
-      "service"
-   ]
-
-   df = df[cols_in]
-   print(df.shape)
-
-   return df.to_csv(index=False).encode('utf-8')
-
-#def convert_df_to_excel(df):
-#   from io import BytesIO
-#   from pyxlsb import open_workbook as open_xlsb
-#   import streamlit as st
-#   output = BytesIO()
-#   writer = pd.ExcelWriter(output, engine='xlsxwriter')
-#   df.to_excel(writer, index=False, sheet_name='Sheet1')
-#   workbook = writer.book
-#   worksheet = writer.sheets['Sheet1']
-#   format1 = workbook.add_format({'num_format': '0.00'}) 
-#   worksheet.set_column('A:A', None, format1)  
-#   writer.save()
-#   processed_data = output.getvalue()
-#   return processed_data
-
-csv = convert_df_to_csv(df)
-#xlsx = convert_df_to_excel(df)
-
-_, col1, col2 = st.columns([2,1,1])
-
+col1, _ = st.columns([1,6])
 with col1:
+   mes = st.selectbox("Mes",[6,7],format_func=lambda x: "Junio" if x==6 else "Julio")
+
+itinerarios = load_itinerarios(mes)
+
+tabs = st.tabs(["Tiempos de tránsito","Tiempos a destino","Itinerarios"])
+
+with tabs[2]:
+
+   columns = [
+      'carrier'
+      ,'pol'
+      ,'pol_name'
+      ,'pod'
+      ,'pod_name'
+      ,'eta'
+      ,'etd'
+      ,'transshipment_count'
+      ,'transit_time'
+      ,'transhipments_name_1'
+      ,'transhipments_name_2'
+      ,'vessel'
+      ,'service'
+      ]
+
+   # Download in CSV
+   csv = convert_df_to_csv(itinerarios, columns)
    st.download_button(
       label="Descargar en CSV",
       data=csv,
       file_name="itinerarios.csv",
       mime="text/csv",
+      key='download-csv-2'
+      )
+
+   AgGrid(itinerarios[columns], agrid_options(itinerarios[columns], 20))
+
+with tabs[0]:
+
+   itinerarios["service_first"] = itinerarios["service"].apply(lambda x: x[0])
+   itinerarios["transhipments_name_1"].fillna("-", inplace=True)
+   itinerarios["transhipments_name_2"].fillna("-", inplace=True)
+
+   promedios = itinerarios.groupby(by=["pol","pod","carrier","transhipments_name_1","transhipments_name_2","service_first"]).agg({'transit_time':["mean","std","count"]}).reset_index()
+   # Round transit_time to 2 decimals
+   promedios["transit_time"] = promedios["transit_time"].apply(lambda x: round(x,1))
+   # Flatten columns
+   promedios.columns = ['_'.join(col).strip() for col in promedios.columns.values]
+
+   promedios.rename(columns={
+      "pol_":"POL",
+      "pod_":"POD",
+      "carrier_":"Naviera",
+      "transhipments_name_1_":"Trasbordo 1",
+      "transhipments_name_2_":"Trasbordo 2",
+      "service_first_":"Servicio",
+      "transit_time_mean":"Promedio tránsito",
+      "transit_time_std":"Varianza tránsito",
+      "transit_time_count":"Número de viajes"}, inplace=True)
+   
+   promedios_csv = convert_df_to_csv(promedios, promedios.columns)
+   st.download_button(
+      label="Descargar en CSV",
+      data=promedios_csv,
+      file_name="rutas.csv",
+      mime="text/csv",
       key='download-csv'
       )
 
-#with col2:
-#   st.download_button(
-#      label='Descargar en Excel',
-#      data=xlsx ,
-#      file_name='itinerarios.xlsx'
-#      )
+   AgGrid(promedios, agrid_options(promedios, 20))
 
-columns = [
-   'carrier'
-   ,'pol'
-   ,'pol_name'
-   ,'pod'
-   ,'pod_name'
-   ,'eta'
-   ,'etd'
-   ,'transshipment_count'
-   ,'transit_time'
-   #,'cyclosing'
-   ,'transhipments_name_1'
-   ,'transhipments_name_2'
-   ,'transhipments_name_3'
-   ,'transhipments_name_4'
-   ,'vessel'
-   ,'service'
-   ]
+with tabs[1]:
 
-AgGrid(df[columns], agrid_options(df[columns], 20))
+   destinos = itinerarios.groupby(["pod","pod_name"]).agg({'transit_time':["mean","std","count"]}).reset_index()
+   destinos.columns = ['_'.join(col).strip() for col in destinos.columns.values]
+   destinos["transit_time_mean"] = destinos["transit_time_mean"].apply(lambda x: round(x,1))
+   destinos["transit_time_std"] = destinos["transit_time_std"].apply(lambda x: round(x,1))
+   destinos.rename(columns={
+      "pod_":"POD",
+      "pod_name_":"Nombre POD",
+      "transit_time_mean":"Promedio tránsito",
+      "transit_time_std":"Varianza tránsito",
+      "transit_time_count":"Número de viajes"
+   }, inplace=True)
+
+   destinos_csv = convert_df_to_csv(destinos, ["POD","Nombre POD","Promedio tránsito","Varianza tránsito","Número de viajes"])
+   st.download_button(
+      label="Descargar en CSV",
+      data=destinos_csv,
+      file_name="destinos.csv",
+      mime="text/csv"
+      )
+
+   AgGrid(destinos, agrid_options(destinos, 20))
