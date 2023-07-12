@@ -194,7 +194,6 @@ problem_columns_categories_map = {
         "W. TS2 = TS3",
         "W. TS3 = TS4",
         "W. TS2 < TS1",
-        "W. TS2 < TS1",
         "W. TS3 < TS2",
         "W. TS4 < TS3",
         "W. Port TS1 = Port TS2",
