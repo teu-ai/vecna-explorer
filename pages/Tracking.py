@@ -26,7 +26,8 @@ ENVIOS = [
     'Envío 11',
     'Envío 12',
     'Envío 13',
-    'Envío 14'
+    'Envío 14',
+    'Envío 15'
 ]
 PROBLEMS_TO_IGNORE = [
     "W. Sin BL",
@@ -58,7 +59,8 @@ def plot_errors_per_envio(data):
         datetime(2023,6,12),
         datetime(2023,6,19),
         datetime(2023,6,30),
-        datetime(2023,6,30)
+        datetime(2023,6,30),
+        datetime(2023,7,12)
     ]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
