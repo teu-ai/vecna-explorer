@@ -37,6 +37,19 @@ PROBLEMS_TO_IGNORE = [
     "W. ATD e Iniciando",
     "W. Sin ATA ni ETA"
 ]
+PROBLEMS_TRANSSHIPMENT_COMPLETENESS = [
+    "W. TR1 sin ATA, pero con ATD",
+    "W. TR2 sin ATA, pero con ATD",
+    "W. TR3 sin ATA, pero con ATD",
+    "W. TR4 sin ATA, pero con ATD",
+    "W. TR1 sin ATD, pero TR2 con ATA",
+    "W. TR2 sin ATD, pero TR3 con ATA",
+    "W. TR3 sin ATD, pero TR4 con ATA",
+    "W. TR1 sin ATD, pero Arribado",
+    "W. TR2 sin ATD, pero Arribado",
+    "W. TR3 sin ATD, pero Arribado",
+    "W. TR4 sin ATD, pero Arribado",
+]
 
 setup_ambient()
 
@@ -115,6 +128,11 @@ considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores",
 sin_msc = st.checkbox("Sin MSC", value=False, help="Sin MSC.")
 if sin_msc:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Naviera"] != 'MSC']
+
+columns = [x for x in data_quality_wide.columns if x not in PROBLEMS_TRANSSHIPMENT_COMPLETENESS]
+sin_tsp_completeness = st.checkbox("Sin Transbordo Completitud", value=False, help="Extra checks para completitud de transbordos.")
+if sin_tsp_completeness:
+    data_quality_wide = data_quality_wide[columns]
 
 # Not subscribed
 data_quality_wide_not_subscribed = data_quality_wide.loc[lambda x: x["W. No tiene suscripción"] == 1]
@@ -202,6 +220,29 @@ problem_columns_categories_map = {
         "W. Port TS2 = Port TS3",
         "W. Port TS3 = Port TS4"
     ],
+    "2.1 Trasbordo Completitud":[
+        "W. TR1 sin ATA, pero con ATD",
+        "W. TR2 sin ATA, pero con ATD",
+        "W. TR3 sin ATA, pero con ATD",
+        "W. TR4 sin ATA, pero con ATD"
+    ],
+    "2.2 Trasbordo Completitud":[
+        "W. TR1 sin ATD, pero TR2 con ATA",
+        "W. TR2 sin ATD, pero TR3 con ATA",
+        "W. TR3 sin ATD, pero TR4 con ATA"
+    ],
+    "2.3 Trasbordo Completitud":[
+        "W. TR1 sin ATD, pero Arribado",
+        "W. TR2 sin ATD, pero Arribado",
+        "W. TR3 sin ATD, pero Arribado",
+        "W. TR4 sin ATD, pero Arribado"
+    ],
+    # "2.3 Trasbordo Completitud":[
+    #     "W. Transbordo final TR1 sin ATD, pero Arribado",
+    #     "W. Transbordo final TR2 sin ATD, pero Arribado",
+    #     "W. Transbordo final TR3 sin ATD, pero Arribado",
+    #     "W. Transbordo final TR4 sin ATD, pero Arribado"
+    # ],
     "3. Fecha de llegada POD":[
         "W. Sin ETA",
         "W. ETD >= ETA",
@@ -230,6 +271,11 @@ problem_columns_categories_map = {
     ],
     "Total":problem_columns
 }
+
+if sin_tsp_completeness:
+    del(problem_columns_categories_map["2.1 Trasbordo Completitud"])
+    del(problem_columns_categories_map["2.2 Trasbordo Completitud"])
+    del(problem_columns_categories_map["2.3 Trasbordo Completitud"])
 
 problem_columns_categories = problem_columns_categories_map.keys()
 problem_columns_categories_list = {v:k for k in problem_columns_categories_map for v in problem_columns_categories_map[k] if k != "Total"}

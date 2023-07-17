@@ -416,7 +416,22 @@ def load_data_quality(client="Arauco") -> pd.DataFrame:
         'w. sin pod descarga estimada': 'W. Sin POD Descarga estimada',
         'w. sin devolución, finalizado': 'W. Sin devolución, Finalizado',
         'w. devuelto vacío < pod descarga': 'W. Devuelto vacío < POD Descarga',
-        'w. sin ata ni eta': 'W. Sin ATA ni ETA'
+        'w. sin ata ni eta': 'W. Sin ATA ni ETA',
+        'w. tr1 sin ata, pero con atd': 'W. TR1 sin ATA, pero con ATD',
+        'w. tr2 sin ata, pero con atd': 'W. TR2 sin ATA, pero con ATD',
+        'w. tr3 sin ata, pero con atd': 'W. TR3 sin ATA, pero con ATD',
+        'w. tr4 sin ata, pero con atd': 'W. TR4 sin ATA, pero con ATD',
+        'w. tr1 sin atd, pero tr2 con ata': 'W. TR1 sin ATD, pero TR2 con ATA',
+        'w. tr2 sin atd, pero tr3 con ata': 'W. TR2 sin ATD, pero TR3 con ATA',
+        'w. tr3 sin atd, pero tr4 con ata': 'W. TR3 sin ATD, pero TR4 con ATA',
+        'w. tr1 sin atd, pero arribado': 'W. TR1 sin ATD, pero Arribado',
+        'w. tr2 sin atd, pero arribado': 'W. TR2 sin ATD, pero Arribado',
+        'w. tr3 sin atd, pero arribado': 'W. TR3 sin ATD, pero Arribado',
+        'w. tr4 sin atd, pero arribado': 'W. TR4 sin ATD, pero Arribado',
+        # 'w. transbordo final tr1 sin atd, pero arribado': 'W. Transbordo final TR1 sin ATD, pero Arribado',
+        # 'w. transbordo final tr2 sin atd, pero arribado': 'W. Transbordo final TR2 sin ATD, pero Arribado',
+        # 'w. transbordo final tr3 sin atd, pero arribado': 'W. Transbordo final TR3 sin ATD, pero Arribado',
+        # 'w. transbordo final tr4 sin atd, pero arribado': 'W. Transbordo final TR4 sin ATD, pero Arribado',
     }
 
     if client == "Arauco":
