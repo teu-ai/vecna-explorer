@@ -130,7 +130,7 @@ if sin_msc:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Naviera"] != 'MSC']
 
 columns = [x for x in data_quality_wide.columns if x not in PROBLEMS_TRANSSHIPMENT_COMPLETENESS]
-sin_tsp_completeness = st.checkbox("Sin Transbordo Completitud", value=False, help="Extra checks para completitud de transbordos.")
+sin_tsp_completeness = st.checkbox("Considerar errores de completitud en transbordos", value=False, help="Extra checks para completitud de transbordos.")
 if sin_tsp_completeness:
     data_quality_wide = data_quality_wide[columns]
 
