@@ -110,12 +110,13 @@ with col1_a:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
 
 # Create selectbox with Envío de datos
+envios_de_datos_default = [f"Envío {i}" for i in range(10,17)]
 with col2_a:
     envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()
     selected_envios_de_datos = st.multiselect(
         "Envíos de datos",
         envios_de_datos,
-        default=envios_de_datos[9:],
+        default=envios_de_datos_default,
         help="Un Envío de dato corresponde a un conjunto de datos que se envía a KLog.co desde Arauco.")
 
 # Select entregas to show
