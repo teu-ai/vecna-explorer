@@ -36,13 +36,13 @@ def load_itinerarios_json_to_dataframe(json_dir="data", months=["June","July"]):
 
 def load_itinerarios_dataframe_to_db(df, database="itineraries.db"):
     con = duckdb.connect(database)
-    con.execute("CREATE OR REPLACE TABLE test AS SELECT * FROM df")
-    con.execute("INSERT INTO test SELECT * FROM df")
+    con.execute("CREATE OR REPLACE TABLE itineraries AS SELECT * FROM df")
+    con.execute("INSERT INTO itineraries SELECT * FROM df")
     con.close()
 
 def get_itinerarios(database="itineraries.db"):
     con = duckdb.connect(database)
-    df = con.execute("SELECT * FROM test").fetchdf()
+    df = con.execute("SELECT * FROM itineraries").fetchdf()
     con.close()
     return df
 
