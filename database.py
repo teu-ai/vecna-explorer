@@ -6,7 +6,7 @@ import duckdb
 
 logging.basicConfig(level=logging.INFO)
 
-def load_itinerarios_json_to_dataframe(json_dir="data", months=["June","July"]):
+def load_itinerarios_json_to_dataframe(data_dir="data"):
     """ Load itineraries from JSON files in directory, and returns DataFrame
 
     The function expectes individual JSON files returned from Project44 API in the specified directory.
@@ -15,14 +15,16 @@ def load_itinerarios_json_to_dataframe(json_dir="data", months=["June","July"]):
         json_dir (str): Directory where JSON files are located
         months (list): List of months to filter itineraries
     """
+
     data = []
-    for month in months:
-        # Read all json files from data directory
-        data_dir = f"{json_dir}/{month}/"
-        files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f)) and f.endswith(".json")]
+
+    # Iterate over all sub-diretories in the root directory json_dir
+    for subdir, dirs, files in os.walk(data_dir):
+        # Read all json files from directory
+        files = [f for f in files if f.endswith(".json")]
         for file in files:
             # Read JSON
-            with open(data_dir+file) as f:
+            with open(f"{subdir}/{file}") as f:
                 d = json.load(f)
                 if not isinstance(d, dict):
                     logging.warning(f"JSON file has unrecognized format; parent is not a dictionary: {file}")
