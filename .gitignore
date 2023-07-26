@@ -18,4 +18,5 @@ app.ipynb
 data/
 *data/
 *data/*
+data/
 .mypy_cache
