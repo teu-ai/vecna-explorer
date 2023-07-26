@@ -6,7 +6,7 @@ La sección itinerarios muestra información sobre los viajes a realizar en el f
 
 ### Carga de itinerarios
 
-Los itinerarios se leen de una base de datos duckdb, en el archivo itineraries.db.
+Los itinerarios se leen de una base de datos [duckdb](https://duckdb.org/), en el archivo `itineraries.db`.
 
 Esta base de datos se crea con el script `database.py`.
 
@@ -14,11 +14,11 @@ Se puede ejecutar simplemente como:
 
     python database.py
 
-La función buscará en el directorio `data/`, y los subdirectorios en ese directorio, archivos `.JSON` en el formato entregado por Project44. El directorio `data` es personalizable.
+La función buscará en el directorio `data/` (y todos los subdirectorios en ese directorio) archivos `.JSON` en el formato entregado por Project44.
 
-Cada archivo contiene información de los itinerarios para un POL/POD determinado.
+Cada archivo contiene información de todos los itinerarios para un POL/POD determinado.
 
-Luego esta información se guarda, desde un DataFrame de pandas, a una base de datos de duckdb en `itineraries.db`
+Luego esta información se guarda, desde un DataFrame de pandas, a una base de datos local de duckdb en `itineraries.db`. Este es el archivo que se lee en la aplicación de Streamlit.
 
 Se indica con un warning errores encontrados en los formatos de los JSON.
 
