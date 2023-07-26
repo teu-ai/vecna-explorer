@@ -16,3 +16,7 @@ tools/__pycache__
 .vscode/settings.json
 app.ipynb
 data/
+*data/
+*data/*
+data/
+.mypy_cache
