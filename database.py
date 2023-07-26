@@ -34,15 +34,28 @@ def load_itinerarios_json_to_dataframe(json_dir="data", months=["June","July"]):
     results = [i for sublist in [d["results"] for d in data] for i in sublist]
     return pd.DataFrame(results)
 
-def load_itinerarios_dataframe_to_db(df, database="itineraries.db"):
+def load_itinerarios_dataframe_to_db(df, database="itineraries.db", table="itineraries"):
+    """ Load itineraries from DataFrame to database
+
+    Args:
+        df (pd.DataFrame): DataFrame with itineraries
+        database (str): Database name
+        table (str): Table name
+    """
     con = duckdb.connect(database)
-    con.execute("CREATE OR REPLACE TABLE itineraries AS SELECT * FROM df")
-    con.execute("INSERT INTO itineraries SELECT * FROM df")
+    con.execute(f"CREATE OR REPLACE TABLE {table} AS SELECT * FROM df")
+    con.execute(f"INSERT INTO {table} SELECT * FROM df")
     con.close()
 
-def get_itinerarios(database="itineraries.db"):
+def get_itinerarios(database="itineraries.db", table="itineraries"):
+    """ Get itineraries from database
+
+    Args:
+        database (str): Database name
+        table (str): Table name
+    """
     con = duckdb.connect(database)
-    df = con.execute("SELECT * FROM itineraries").fetchdf()
+    df = con.execute(f"SELECT * FROM {table}").fetchdf()
     con.close()
     return df
 
