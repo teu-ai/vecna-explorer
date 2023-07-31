@@ -68,6 +68,29 @@ WHERE
 
    # List of services
    df["service"] = df.apply(lambda y: [x["service_name"] for x in y["legs"]], axis=1)
+   if month == 8:
+      # filter services from Agosto
+      df["service"] = df.apply(lambda x: select_service(x), axis=1)
+   #
+   # delete rows with no services
+   df = df[~pd.isnull(df["service"])]
+
+   # # for testing
+   # print(df.loc[lambda x: x["carrier_scac"] == "CMDU",["service"]].values)
+   #
+   # services_test = []
+   # # scac = "CMDU"
+   # # scac = "COSU"
+   # # scac = "EVRG"
+   # # scac = "SUDU"
+   # # scac = "HLCU"
+   # # scac = "MAEU"
+   # # scac = "MSCU"
+   # scac = "ONEY"
+   # for i, r in df.iterrows():
+   #    if r["carrier_scac"] == scac:
+   #       services_test.extend(r["service"])
+   # services_test = list(set(services_test))
 
    # Drop legs column, we don't need it anymore
    df = df.drop(columns=["legs"])
@@ -93,6 +116,62 @@ WHERE
    df["transhipments_name_4"].fillna("-", inplace=True)
 
    return df
+
+def select_service(x):
+
+   servicios_in = {
+      "CMDU": [
+         "AMERICAS XL SERVICE",
+         "ASIA CENTRAL SOUTH AMERICA 2",
+         "ASIA CENTRAL SOUTH AMERICA SERVICE 3",
+         "EUROSAL XL SERVICE",
+      ],
+      "COSU": [
+         "ASIA - MIDDLE AND SOUTH AMERICA WEST COAST WEEKLY SERVICE 3",
+         "ASIA - SOUTH AMERICA WEST COAST SERVICE",
+      ],
+      "EVRG": [
+         "ASIA - SOUTH AMERICA WEST COAST SERVICE",
+         "ASIA - SOUTH AMERICA WEST COAST SERVICE 3",
+      ],
+      "EGLV": [
+         "ASIA - SOUTH AMERICA WEST COAST SERVICE",
+         "ASIA - SOUTH AMERICA WEST COAST SERVICE 3",
+      ],
+      "SUDU": [
+         "ATACAMA SERVICE"
+      ],
+      "HLCU": [
+         "CONOSUR SERVICE - LOOP1",
+         "CONOSUR SERVICE - LOOP2",
+         "SOUTH AMERICA - ASIA - LOOP 2",
+         "SOUTH AMERICA - ASIA SERVICE - LOOP 1",
+         "WEST COAST SOUTH AMERICA FEEDER SERVICE 3",
+      ],
+      "MAEU": [
+         "ATACAMA SERVICE",
+         "WEST COAST LATIN AMERICA-NORTH EUROPE EXPRESS SERVICE",
+      ],
+      "MSCU": [
+         "ANDES EXPRESS SERVICE",
+         "ASIA - LATIN AMERICA - INCA SERVICE",
+         "NORTH EUROPE WEST COAST - UNITED STATES OF AMERICA - SOUTH AMERICA WEST COAST SERVICE",
+      ],
+      "ONEY": [
+         "ASIA LATIN AMERICA EXPRESS SERVICE 1 - ALX1",
+         "ASIA LATIN AMERICA EXPRESS SERVICE 2 - ALX2",
+      ],
+   }
+
+   carrier_scac = x["carrier_scac"]
+   if carrier_scac in servicios_in:
+      s = [c for c in x["service"] if c in servicios_in[carrier_scac]]
+      if len(s) > 0:
+         return s
+      else:
+         return None
+   else:
+      return x["service"]
 
 def convert_df_to_csv(df: pd.DataFrame, columns: list[str]):
    """Convert dataframe to CSV
