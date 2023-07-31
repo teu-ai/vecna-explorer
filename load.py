@@ -432,12 +432,18 @@ def load_data_quality(client="Arauco") -> pd.DataFrame:
         # 'w. transbordo final tr2 sin atd, pero arribado': 'W. Transbordo final TR2 sin ATD, pero Arribado',
         # 'w. transbordo final tr3 sin atd, pero arribado': 'W. Transbordo final TR3 sin ATD, pero Arribado',
         # 'w. transbordo final tr4 sin atd, pero arribado': 'W. Transbordo final TR4 sin ATD, pero Arribado',
+        'w. inland sin ata, pero con atd': 'W. Inland sin ATA, pero con ATD',
+        'w. inland sin descarga, pero con atd': 'W. Inland sin Descarga, pero con ATD',
+        'w. inland sin atd, finalizado': 'W. Inland sin ATD, Finalizado',
+        'w. inland incompleto, finalizado': 'W. Inland incompleto, Finalizado',
+        'w. inland incompleto, no finalizado': 'W. Inland incompleto, No finalizado',
     }
 
     if client == "Arauco":
         data = pd.read_csv(f"https://klog.metabaseapp.com/public/question/c2c3c38d-e8e6-4482-ab6c-33e3f9317cce.csv")
 
     data = data.rename(columns=new_columns)
+    data = data.drop(columns=['W. Inland incompleto, No finalizado'])
 
     return data
 

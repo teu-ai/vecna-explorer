@@ -46,7 +46,6 @@ def load_itinerarios_dataframe_to_db(df, database="itineraries.db", table="itine
     """
     con = duckdb.connect(database)
     con.execute(f"CREATE OR REPLACE TABLE {table} AS SELECT * FROM df")
-    con.execute(f"INSERT INTO {table} SELECT * FROM df")
     con.close()
 
 def get_itinerarios(database="itineraries.db", table="itineraries"):
@@ -65,7 +64,8 @@ def main():
     database = "itineraries.db"
     df = load_itinerarios_json_to_dataframe()
     load_itinerarios_dataframe_to_db(df, database="itineraries.db")
-    logging.info(f"Loaded {(len(get_itinerarios(database=database)))} itineraries to {database}")
+    itinerarios = get_itinerarios(database=database)
+    logging.info(f"Loaded {(len(itinerarios))} itineraries to {database}")
 
 if __name__ == '__main__':
     main()

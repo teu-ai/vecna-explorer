@@ -52,6 +52,13 @@ PROBLEMS_TRANSSHIPMENT_COMPLETENESS = [
     "W. TR3 sin ATD, pero Arribado",
     "W. TR4 sin ATD, pero Arribado",
 ]
+PROBLEMS_INLAND_COMPLETENESS = [
+    "W. Inland sin ATA, pero con ATD",
+    "W. Inland sin Descarga, pero con ATD",
+    "W. Inland sin ATD, Finalizado",
+    "W. Inland incompleto, Finalizado"
+    # "W. Inland incompleto, No finalizado"
+]
 
 setup_ambient()
 
@@ -135,10 +142,15 @@ sin_msc = st.checkbox("Sin MSC", value=False, help="Sin MSC.")
 if sin_msc:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Naviera"] != 'MSC']
 
-columns = [x for x in data_quality_wide.columns if x not in PROBLEMS_TRANSSHIPMENT_COMPLETENESS]
-sin_tsp_completeness = st.checkbox("Sin errores de completitud en transbordos", value=True, help="Extra errores de completitud en transbordos.")
+cols_sin_tsp_completeness = [x for x in data_quality_wide.columns if x not in PROBLEMS_TRANSSHIPMENT_COMPLETENESS]
+sin_tsp_completeness = st.checkbox("Sin errores de completitud en transbordos", value=True, help="Errores de completitud en transbordos.")
 if sin_tsp_completeness:
-    data_quality_wide = data_quality_wide[columns]
+    data_quality_wide = data_quality_wide[cols_sin_tsp_completeness]
+
+cols_sin_inland_completeness = [x for x in data_quality_wide.columns if x not in PROBLEMS_INLAND_COMPLETENESS]
+sin_inland_completeness = st.checkbox("Sin errores de completitud en inland", value=True, help="Errores de completitud en inland.")
+if sin_inland_completeness:
+    data_quality_wide = data_quality_wide[cols_sin_inland_completeness]
 
 # Not subscribed
 data_quality_wide_not_subscribed = data_quality_wide.loc[lambda x: x["W. No tiene suscripción"] == 1]
@@ -260,8 +272,15 @@ problem_columns_categories_map = {
         "W. Sin POD Descarga estimada",
         "W. POD Descarga < ATA"
     ],
-    "5. Out of gate POD":[
+    # "5. Out of gate POD":[
 
+    # ],
+    "5. Completitud Inland":[
+        "W. Inland sin ATA, pero con ATD",
+        "W. Inland sin Descarga, pero con ATD",
+        "W. Inland sin ATD, Finalizado",
+        "W. Inland incompleto, Finalizado",
+        # "W. Inland incompleto, No finalizado"
     ],
     "6. Empty return":[
         "W. Sin devolución, Finalizado",
@@ -282,6 +301,9 @@ if sin_tsp_completeness:
     del(problem_columns_categories_map["2.1 Trasbordo Completitud"])
     del(problem_columns_categories_map["2.2 Trasbordo Completitud"])
     del(problem_columns_categories_map["2.3 Trasbordo Completitud"])
+
+if sin_inland_completeness:
+    del(problem_columns_categories_map["5. Completitud Inland"])
 
 problem_columns_categories = problem_columns_categories_map.keys()
 problem_columns_categories_list = {v:k for k in problem_columns_categories_map for v in problem_columns_categories_map[k] if k != "Total"}
