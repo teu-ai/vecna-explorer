@@ -5,6 +5,8 @@ from st_aggrid import AgGrid
 import pandas as pd
 import duckdb
 
+MONTHS = {6:"Junio",7:"Julio",8:"Agosto"}
+
 setup_ambient(ambient="Arauco")
 
 st.set_page_config(layout="wide")
@@ -121,7 +123,7 @@ st.write("# Itinerarios")
 # UI: Month selector
 col1, _ = st.columns([1,6])
 with col1:
-   mes = st.selectbox("Mes",[6,7],format_func=lambda x: "Junio" if x==6 else "Julio")
+   mes = st.selectbox("Mes",MONTHS.keys(),format_func=lambda x: MONTHS[x])
 # Get data based on month selected
 itinerarios = load_itinerarios(mes)
 
@@ -133,8 +135,9 @@ with tabs[0]:
 
    # Group by pol, pod, carrier, transhipments_name_1, transhipments_name_2, service_first and compute mean, std and number of trips from transit time.
    # deepcopy
-
-   promedios = itinerarios.groupby(by=["pol","pod","carrier","transhipments_name_1","transhipments_name_2","service_first"]).agg({'transit_time':["mean","std","count"]}).reset_index()
+   itinerarios["transhipments"] = itinerarios["transhipments"].apply(lambda x: str(x))
+   itinerarios["service"] = itinerarios["service"].apply(lambda x: str(x))
+   promedios = itinerarios.groupby(by=["pol","pod","carrier","transhipments","transhipments_name_1","transhipments_name_2","service_first","service"]).agg({'transit_time':["mean","std","count"]}).reset_index()
    # Round transit_time to 2 decimals
    promedios["transit_time"] = promedios["transit_time"].apply(lambda x: round(x,1))
    # Flatten multiindex columns
@@ -145,9 +148,11 @@ with tabs[0]:
       "pol_":"POL",
       "pod_":"POD",
       "carrier_":"Naviera",
+      "transhipments_":"Trasbordos",
       "transhipments_name_1_":"Trasbordo 1",
       "transhipments_name_2_":"Trasbordo 2",
       "service_first_":"Servicio",
+      "service_":"Servicio o",
       "transit_time_mean":"Promedio tránsito",
       "transit_time_std":"Varianza tránsito",
       "transit_time_count":"Número de viajes"}, inplace=True)
