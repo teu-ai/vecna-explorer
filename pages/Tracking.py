@@ -29,7 +29,8 @@ ENVIOS = [
     'Envío 14',
     'Envío 15',
     'Envío 16',
-    'Envío 17'
+    'Envío 17',
+    'Envío 18'
 ]
 PROBLEMS_TO_IGNORE = [
     "W. Sin BL",
@@ -84,7 +85,8 @@ def plot_errors_per_envio(data):
         datetime(2023,6,30),
         datetime(2023,7,12),
         datetime(2023,7,18),
-        datetime(2023,7,24)
+        datetime(2023,7,24),
+        datetime(2023,7,28)
     ]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
@@ -119,7 +121,7 @@ with col1_a:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
 
 # Create selectbox with Envío de datos
-envios_de_datos_default = [f"Envío {i}" for i in range(10,18)]
+envios_de_datos_default = [f"Envío {i}" for i in range(11,19)]
 with col2_a:
     # envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()    
     envios_de_datos = ENVIOS
