@@ -140,7 +140,8 @@ entregas_selected = st.multiselect("Entregas", data_quality_wide["Entrega"].drop
 col1_c, col2_c = st.columns([1,1])
 
 # Compute and filter out errors
-considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
+# considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
+sin_entregas_con_errores = st.checkbox("Sin entregas con errores de suscripción", value=True, help="Si se activa, se omiten entregas con contenedores no reportados por navieras, etc.")
 
 sin_msc = st.checkbox("Sin MSC", value=False, help="Sin MSC.")
 if sin_msc:
@@ -159,16 +160,19 @@ if sin_inland_completeness:
 # Not subscribed
 data_quality_wide_not_subscribed = data_quality_wide.loc[lambda x: x["W. No tiene suscripción"] == 1]
 entregas_not_subscribed = data_quality_wide_not_subscribed["Entrega"].unique().tolist()
-if not considerar_entregas_con_errores:
+if sin_entregas_con_errores:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Entrega"].apply(lambda y: y not in entregas_not_subscribed)]
 
 # Container not in BL
 containers_by_subscription = load.load_containers_by_subscription("prod")
 containers_by_subscription = containers_by_subscription.groupby('subscription_id')["vecna_event_container"].apply(list).to_dict()
 containers_not_in_subscriptions = data_quality_wide.loc[lambda x: x.apply(lambda y: y["Contenedor"] not in containers_by_subscription.get(str(y["subscriptionId"]),[]),axis=1)].copy()
-if not considerar_entregas_con_errores:
+if sin_entregas_con_errores:
     c = containers_not_in_subscriptions["Contenedor"].unique().tolist()
     data_quality_wide = data_quality_wide.loc[lambda x: x["Contenedor"].apply(lambda y: y not in c)]
+
+# For testing
+# data_quality_wide.loc[lambda x: x["MBL"] == "MEDUD9458693", ["MBL","Contenedor","Envío de datos","subscriptionId"]]
 
 # Global ignore of warnings
 columns = [x for x in data_quality_wide.columns if x not in PROBLEMS_TO_IGNORE]
