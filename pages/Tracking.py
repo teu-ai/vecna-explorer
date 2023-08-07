@@ -30,7 +30,8 @@ ENVIOS = [
     'Envío 15',
     'Envío 16',
     'Envío 17',
-    'Envío 18'
+    'Envío 18',
+    'Envío 19'
 ]
 PROBLEMS_TO_IGNORE = [
     "W. Sin BL",
@@ -86,7 +87,8 @@ def plot_errors_per_envio(data):
         datetime(2023,7,12),
         datetime(2023,7,18),
         datetime(2023,7,24),
-        datetime(2023,7,28)
+        datetime(2023,7,28),
+        datetime(2023,8,4)
     ]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
@@ -121,7 +123,7 @@ with col1_a:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
 
 # Create selectbox with Envío de datos
-envios_de_datos_default = [f"Envío {i}" for i in range(11,19)]
+envios_de_datos_default = [f"Envío {i}" for i in range(11,20)]
 with col2_a:
     # envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()    
     envios_de_datos = ENVIOS
@@ -138,7 +140,8 @@ entregas_selected = st.multiselect("Entregas", data_quality_wide["Entrega"].drop
 col1_c, col2_c = st.columns([1,1])
 
 # Compute and filter out errors
-considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
+# considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
+sin_entregas_con_errores = st.checkbox("Sin entregas con errores de suscripción", value=True, help="Si se activa, se omiten entregas con contenedores no reportados por navieras, etc.")
 
 sin_msc = st.checkbox("Sin MSC", value=False, help="Sin MSC.")
 if sin_msc:
@@ -157,16 +160,19 @@ if sin_inland_completeness:
 # Not subscribed
 data_quality_wide_not_subscribed = data_quality_wide.loc[lambda x: x["W. No tiene suscripción"] == 1]
 entregas_not_subscribed = data_quality_wide_not_subscribed["Entrega"].unique().tolist()
-if not considerar_entregas_con_errores:
+if sin_entregas_con_errores:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Entrega"].apply(lambda y: y not in entregas_not_subscribed)]
 
 # Container not in BL
 containers_by_subscription = load.load_containers_by_subscription("prod")
 containers_by_subscription = containers_by_subscription.groupby('subscription_id')["vecna_event_container"].apply(list).to_dict()
 containers_not_in_subscriptions = data_quality_wide.loc[lambda x: x.apply(lambda y: y["Contenedor"] not in containers_by_subscription.get(str(y["subscriptionId"]),[]),axis=1)].copy()
-if not considerar_entregas_con_errores:
+if sin_entregas_con_errores:
     c = containers_not_in_subscriptions["Contenedor"].unique().tolist()
     data_quality_wide = data_quality_wide.loc[lambda x: x["Contenedor"].apply(lambda y: y not in c)]
+
+# For testing
+# data_quality_wide.loc[lambda x: x["MBL"] == "MEDUD9458693", ["MBL","Contenedor","Envío de datos","subscriptionId"]]
 
 # Global ignore of warnings
 columns = [x for x in data_quality_wide.columns if x not in PROBLEMS_TO_IGNORE]
