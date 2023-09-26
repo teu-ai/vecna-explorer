@@ -272,10 +272,8 @@ def load_event_dynamo(subscription_id, env):
     )
     return response
 
-@st.cache_data
-def load_data_quality(client="Arauco") -> pd.DataFrame:
 
-    new_columns = {
+data_quality_columns = {
         'entrega': 'Entrega',
         'estado': 'Estado',
         'mbl': 'MBL',
@@ -439,6 +437,11 @@ def load_data_quality(client="Arauco") -> pd.DataFrame:
         'w. inland incompleto, no finalizado': 'W. Inland incompleto, No finalizado',
     }
 
+@st.cache_data
+def load_data_quality(client="Arauco",new_columns=data_quality_columns) -> pd.DataFrame:
+
+
+
     if client == "Arauco":
         data = pd.read_csv(f"https://klog.metabaseapp.com/public/question/c2c3c38d-e8e6-4482-ab6c-33e3f9317cce.csv")
 
@@ -448,9 +451,11 @@ def load_data_quality(client="Arauco") -> pd.DataFrame:
     return data
 
 @st.cache_data
-def load_data_quality_historic(date, client="Arauco") -> pd.DataFrame:
+def load_data_quality_historic(date, client="Arauco",new_columns=data_quality_columns) -> pd.DataFrame:
     if client == "Arauco":
         data = load_csv_s3("klog-lake","raw/arauco_snapshots/",f"{date.strftime('%Y%m%d')}-arauco_snapshot.csv")
+    data = data.rename(columns=new_columns)
+    #data = data.drop(columns=['W. Inland incompleto, No finalizado'])        
     return data
 
 @st.cache_data
