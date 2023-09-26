@@ -164,7 +164,7 @@ if sin_entregas_con_errores:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Entrega"].apply(lambda y: y not in entregas_not_subscribed)]
 
 # Container not in BL
-containers_by_subscription = load.load_containers_by_subscription("staging")
+containers_by_subscription = load.load_containers_by_subscription("prod")
 containers_by_subscription = containers_by_subscription.groupby('subscription_id')["vecna_event_container"].apply(list).to_dict()
 containers_not_in_subscriptions = data_quality_wide.loc[lambda x: x.apply(lambda y: y["Contenedor"] not in containers_by_subscription.get(str(y["subscriptionId"]),[]),axis=1)].copy()
 if sin_entregas_con_errores:
