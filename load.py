@@ -77,7 +77,7 @@ def load_events(env) -> pd.DataFrame:
         events_table = "prod_vecna_event_consolidated"
     elif env == "staging":
         schema = "staging"
-        events_table = "dev_vecna_event_consolidated"
+        events_table = "stg_vecna_event_consolidated" #"dev_vecna_event_consolidated"
 
     # All Vecna events
     query = f'''
@@ -116,7 +116,7 @@ def load_containers_by_subscription(env) -> pd.DataFrame:
         events_table = "prod_vecna_event_consolidated"
     elif env == "staging":
         schema = "staging"
-        events_table = "dev_vecna_event_consolidated"
+        events_table = "stg_vecna_event_consolidated" #"dev_vecna_event_consolidated"
 
     # All Vecna events
     query = f'''
@@ -199,7 +199,7 @@ def load_event_vecna(env, vecna_event_id, subscription_id=None, event_created_at
         event_table = "prod_vecna_event_consolidated"
     elif env == "staging":
         schema = "staging"
-        event_table = "dev_vecna_event_consolidated"
+        event_table = "stg_vecna_event_consolidated" #"dev_vecna_event_consolidated"
 
     warehouse_engine = create_warehouse_vecna_engine(env)
     query = f'''
