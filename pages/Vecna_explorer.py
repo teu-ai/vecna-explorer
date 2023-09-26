@@ -26,7 +26,7 @@ if 'selected_entrega' not in st.session_state:
 if 'mbl' not in st.session_state:
     st.session_state.mbl = ''
 
-env = st.selectbox("Ambiente", options=["prod","staging"])
+env = "staging" # st.selectbox("Ambiente", options=["prod","staging"])
 
 subscriptions = load.load_subscriptions(env)
 
