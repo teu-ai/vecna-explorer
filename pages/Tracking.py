@@ -31,7 +31,7 @@ ENVIOS = [
     'Envío 16',
     'Envío 17',
     'Envío 18',
-    'Envío 19'
+    'Envío 19',
     'Envío 47'
 ]
 PROBLEMS_TO_IGNORE = [
