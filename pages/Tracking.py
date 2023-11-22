@@ -90,6 +90,7 @@ def plot_errors_per_envio(data):
         datetime(2023,7,24),
         datetime(2023,7,28),
         datetime(2023,8,4),
+        datetime(2023,11,20),
     ]
     plot = alt.Chart(source).mark_point().encode(
         x=alt.X("Fecha",title="Envío de datos"),
