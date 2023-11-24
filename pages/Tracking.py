@@ -399,12 +399,12 @@ with tab1:
     
     # Transform the counts into a dataframe.
     if problems_selected:
-        problem_counts = pd.DataFrame(problem_counts[problems_selected], columns=["Entregas"])
+        problem_counts = pd.DataFrame(problem_counts[problems_selected], columns=["Contenedores"])
     else:
-        problem_counts = pd.DataFrame(problem_counts, columns=["Entregas"])
+        problem_counts = pd.DataFrame(problem_counts, columns=["Contenedores"])
 
     problem_categories_counts = pd.DataFrame(problem_categories_counts, columns=["Comentarios"])
-    entregas_with_problems_categories_counts = pd.DataFrame(entregas_with_problems_categories_counts, columns=["Entregas"])
+    entregas_with_problems_categories_counts = pd.DataFrame(entregas_with_problems_categories_counts, columns=["Contenedores"])
 
     # Compute sums for each problem of each envío de datos.
     for envio_de_datos in selected_envios_de_datos:
@@ -431,7 +431,7 @@ with tab1:
         for column in entregas_with_problems_categories_counts.columns:
             if column == "Categoria":
                 continue
-            if column == "Entregas":
+            if column == "Contenedores":
                 entregas_with_problems_categories_counts[column] = entregas_with_problems_categories_counts[column]/(entregas_total_filtered*1.0)
             else:
                 entregas_with_problems_categories_counts[column] = entregas_with_problems_categories_counts[column]/(data_per_envio[column]["total"]*1.0)
