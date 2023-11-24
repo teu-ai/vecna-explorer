@@ -360,7 +360,7 @@ for envio_de_datos in envios_de_datos:
 
 # Main
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Resumen", "Errores", "Detalle", "Análisis", "Entregas"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Resumen", "Errores", "Detalle", "Análisis", "Contenedores"])
 
 with tab1:
 
@@ -382,7 +382,7 @@ with tab1:
                 round(entregas_with_problems_filtered*1.0/entregas_total_filtered*1000.0)/10.0 if entregas_total_filtered != 0 else 0],
             [problems_total, problems_total_filtered]
         ],columns=["Total","Filtradas"],
-        index=["Entregas","Entregas con comentarios","% Entregas con comentarios","Comentarios"])
+        index=["Contenedores","Contenedores con comentarios","% Contenedores con comentarios","Comentarios"])
 
     st.write("**Tabla resumen**")
 
@@ -418,7 +418,7 @@ with tab1:
     problem_categories_counts = problem_categories_counts.reset_index().rename(columns={"index":"Categoria"})
     entregas_with_problems_categories_counts = entregas_with_problems_categories_counts.reset_index().rename(columns={"index":"Categoria"})
 
-    tab11, tab21 = st.tabs(["Entregas", "Comentarios"])
+    tab11, tab21 = st.tabs(["Contenedores", "Comentarios"])
 
     with tab11:
 
