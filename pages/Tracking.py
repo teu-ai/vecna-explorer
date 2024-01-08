@@ -33,7 +33,7 @@ ENVIOS = [
     'Envío 18',
     'Envío 19',
     'Envío 47',
-    'Envío Cont'
+    'Envío CONT'
 ]
 PROBLEMS_TO_IGNORE = [
     "W. Sin BL",
@@ -129,7 +129,7 @@ with col1_a:
 # Create selectbox with Envío de datos
 envios_de_datos_default = [f"Envío {i}" for i in range(11,20)]
 envios_de_datos_default.append("Envío 47")
-envios_de_datos_default.append("Envío Cont")
+envios_de_datos_default.append("Envío CONT")
 with col2_a:
     # envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()    
     envios_de_datos = ENVIOS
