@@ -125,6 +125,7 @@ with col1_a:
         data_quality_wide = load.load_data_quality_historic(data_source, client="Arauco")
 
     print(data_quality_wide.describe())
+    print("hola")
     print(len(data_quality_wide.index))
     print(data_quality_wide.head())
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
