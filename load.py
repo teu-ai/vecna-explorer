@@ -11,17 +11,17 @@ def create_warehouse_engine(env):
         conn_bd = f"postgresql://{st.secrets['wh_username']}:{st.secrets['wh_password']}@{st.secrets['wh_host']}:{st.secrets['wh_port']}/{st.secrets['wh_db']}"
     elif env == "staging":
         conn_bd = f"postgresql://{st.secrets['wh_username']}:{st.secrets['wh_password']}@{st.secrets['wh_host']}:{st.secrets['wh_port']}/{st.secrets['wh_db']}"
-    return create_engine(conn_bd).raw_connection()
+    return create_engine(conn_bd)
 
 def create_warehouse_vecna_engine(env):
     from sqlalchemy import create_engine
     conn_bd = f"postgresql://{st.secrets['wh_vecna_username']}:{st.secrets['wh_vecna_password']}@{st.secrets['wh_vecna_host']}:{st.secrets['wh_vecna_port']}/{st.secrets['wh_vecna_db']}"
-    return create_engine(conn_bd).raw_connection()
+    return create_engine(conn_bd)
 
 def create_prisma_engine():
     from sqlalchemy import create_engine
     conn_bd = f"postgresql://{st.secrets['prisma_username']}:{st.secrets['prisma_password']}@{st.secrets['prisma_host']}:{st.secrets['prisma_port']}/{st.secrets['prisma_database']}"
-    return create_engine(conn_bd).raw_connection()
+    return create_engine(conn_bd)
 
 @st.cache_data
 def load_subscriptions(env) -> pd.DataFrame:
