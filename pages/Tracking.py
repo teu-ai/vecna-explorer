@@ -129,7 +129,7 @@ with col1_a:
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
 
 # Create selectbox with Envío de datos
-envios_de_datos_default = ["Envío 50"]
+envios_de_datos_default.append("Envío 50")
 with col2_a:
     # envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()    
     envios_de_datos = ENVIOS
