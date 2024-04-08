@@ -1,7 +1,7 @@
 streamlit
 streamlit-aggrid
 kflow
-pandas
+pandas==2.1.4
 numpy
 altair
 sqlalchemy
