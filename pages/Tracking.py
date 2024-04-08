@@ -132,7 +132,6 @@ with col1_a:
 envios_de_datos_default = [f"Envío {i}" for i in range(11,20)]
 envios_de_datos_default.append("Envío 47")
 envios_de_datos_default.append("Envío CONT")
-envios_de_datos_default.append("Envío 50")
 with col2_a:
     # envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()    
     envios_de_datos = ENVIOS
