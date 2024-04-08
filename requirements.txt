@@ -4,7 +4,7 @@ kflow
 pandas==2.1.4
 numpy
 altair
-sqlalchemy==2.0.25
+sqlalchemy
 sqlalchemy-redshift
 boto3
 psycopg2-binary
