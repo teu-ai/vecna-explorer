@@ -1,11 +1,11 @@
-streamlit
-streamlit-aggrid
+streamlit==1.30.0
+streamlit-aggrid==0.3.4.post3
 kflow
 pandas==2.1.4
 numpy
-altair
-sqlalchemy
-sqlalchemy-redshift
+altair==5.2.0
+sqlalchemy==2.0.25
+sqlalchemy-redshift==0.8.13
 boto3
 psycopg2-binary
 duckdb==0.8.1
