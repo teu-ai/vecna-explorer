@@ -1,5 +1,5 @@
 streamlit==1.30.0
-streamlit-aggrid==0.3.4
+streamlit-aggrid==0.3.5
 kflow
 pandas==2.1.4
 numpy
