@@ -124,7 +124,10 @@ with col1_a:
     else:
         data_quality_wide = load.load_data_quality_historic(data_source, client="Arauco")
 
+    print(data_quality_wide.describe())
+    print(data_quality_wide.head())
     data_quality_wide = data_quality_wide.loc[lambda x: x["Envío de datos"].apply(lambda y: y in ENVIOS)]
+    print(data_quality_wide.head())
 
 # Create selectbox with Envío de datos
 envios_de_datos_default = [f"Envío {i}" for i in range(11,20)]
