@@ -3,7 +3,7 @@ streamlit-aggrid==0.3.5
 kflow
 pandas==2.1.4
 numpy
-altair==5.2.0
+altair
 sqlalchemy==2.0.25
 sqlalchemy-redshift
 boto3
