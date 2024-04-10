@@ -148,7 +148,7 @@ col1_c, col2_c = st.columns([1,1])
 
 # Compute and filter out errors
 # considerar_entregas_con_errores = st.checkbox("Considerar entregas con errores", value=True, help="Si se desactiva, se considerarán sólo las entregas que no tengan errores.")
-sin_entregas_con_errores = st.checkbox("Sin entregas con errores de suscripción", value=True, help="Si se activa, se omiten entregas con contenedores no reportados por navieras, etc.")
+sin_entregas_con_errores = st.checkbox("Sin entregas con errores de suscripción", value=False, help="Si se activa, se omiten entregas con contenedores no reportados por navieras, etc.")
 
 sin_msc = st.checkbox("Sin MSC", value=False, help="Sin MSC.")
 if sin_msc:
