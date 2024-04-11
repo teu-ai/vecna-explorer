@@ -371,8 +371,8 @@ with tab1:
 
     # Summary table
     #def summary_table():
-    entregas_total = data_quality_wide.count()[0]
-    entregas_total_filtered = data_quality_wide_filtered.count()[0]
+    entregas_total = data_quality_wide['Contenedor'].nunique()
+    entregas_total_filtered = data_quality_wide_filtered['Contenedor'].nunique()
 
     entregas_with_problems = data_quality_wide[problem_columns].any(axis=1).sum()
     entregas_with_problems_filtered = data_quality_wide_filtered[problem_columns].any(axis=1).sum()
