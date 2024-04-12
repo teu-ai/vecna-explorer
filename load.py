@@ -440,7 +440,7 @@ def load_data_quality(client="Arauco") -> pd.DataFrame:
     }
 
     if client == "Arauco":
-        data = pd.read_csv(f"https://klog.metabaseapp.com/public/question/c2c3c38d-e8e6-4482-ab6c-33e3f9317cce.csv")
+        data = pd.read_csv(f"https://klog.metabaseapp.com/public/question/b4c0b180-c0cb-4205-8bca-f00ab79972f8.csv")
 
     data = data.rename(columns=new_columns)
     data = data.drop(columns=['W. Inland incompleto, No finalizado'])
