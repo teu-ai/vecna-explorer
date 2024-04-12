@@ -375,10 +375,16 @@ with tab1:
     entregas_total_filtered = data_quality_wide_filtered['Contenedor'].nunique()
 
     entregas_with_problems = data_quality_wide[problem_columns].any(axis=1).sum()
-    entregas_with_problems_filtered = data_quality_wide_filtered[problem_columns].any(axis=1).sum()
+    ## entregas_with_problems_filtered = data_quality_wide_filtered[problem_columns].any(axis=1).sum()
+    ## conteo nuevo primero se filtran
+    rows_with_problems_filtered = data_quality_wide_filtered[problem_columns].any(axis=1)
+
 
     problems_total = data_quality_wide[problem_columns].sum().sum()
-    problems_total_filtered = data_quality_wide_filtered[problem_columns].sum().sum()
+    ## luego contamos contenedores en vez de filas
+    problems_total_filtered = data_quality_wide_filtered.loc[rows_with_problems_filtered, 'Contenedor'].nunique()
+
+    ##problems_total_filtered = data_quality_wide_filtered[problem_columns].sum().sum()
 
     df = pd.DataFrame([
             [entregas_total, entregas_total_filtered],
