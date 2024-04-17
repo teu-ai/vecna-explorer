@@ -23,7 +23,7 @@ def create_prisma_engine():
     conn_bd = f"postgresql://{st.secrets['prisma_username']}:{st.secrets['prisma_password']}@{st.secrets['prisma_host']}:{st.secrets['prisma_port']}/{st.secrets['prisma_database']}"
     return create_engine(conn_bd).raw_connection()
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_subscriptions(env) -> pd.DataFrame:
     """Load subscriptions from Warehouse Vecna"""
     
@@ -66,7 +66,7 @@ where
     subscriptions = pd.read_sql_query(query, warehouse_engine)
     return subscriptions
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_events(env) -> pd.DataFrame:
     """Load events from Warehouse Vecna"""
     
@@ -105,7 +105,7 @@ where "vecna_event_created_at" >= '2023-03-14'
     events = pd.read_sql_query(query, warehouse_engine)
     return events
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_containers_by_subscription(env) -> pd.DataFrame:
     """Load events from Warehouse Vecna"""
     
@@ -131,7 +131,7 @@ where "vecna_event_created_at" >= '2023-01-01'
     return containers_by_subscription
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_shipments_prisma(subscriptionId) -> pd.DataFrame:
     prisma_engine = create_prisma_engine()
 
@@ -165,7 +165,7 @@ def load_events_vecna(doctype, doc, env):
     events = pd.read_sql_query(query, warehouse_engine)
     return events
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_events_prisma(container, _date):
     prisma_engine = create_prisma_engine()
     query = f'''
@@ -191,7 +191,7 @@ order by
     events = pd.read_sql_query(query, prisma_engine)
     return events
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_event_vecna(env, vecna_event_id, subscription_id=None, event_created_at=None, event_container=None):
 
     if env == "prod":
@@ -272,7 +272,7 @@ def load_event_dynamo(subscription_id, env):
     )
     return response
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_data_quality(client="Arauco") -> pd.DataFrame:
 
     new_columns = {
@@ -447,13 +447,13 @@ def load_data_quality(client="Arauco") -> pd.DataFrame:
 
     return data
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_data_quality_historic(date, client="Arauco") -> pd.DataFrame:
     if client == "Arauco":
         data = load_csv_s3("klog-lake","raw/arauco_snapshots/",f"{date.strftime('%Y%m%d')}-arauco_snapshot.csv")
     return data
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_itinerarios():
     # Read all json files from data directory
     data_dir = "data/"
