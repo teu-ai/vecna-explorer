@@ -387,9 +387,8 @@ with tab1:
             [entregas_with_problems, entregas_with_problems_filtered],
             [round(entregas_with_problems*1.0/entregas_total*1000.0)/10.0 if entregas_total != 0 else 0,
                 round(entregas_with_problems_filtered*1.0/entregas_total_filtered*1000.0)/10.0 if entregas_total_filtered != 0 else 0],
-            [problems_total, problems_total_filtered]
         ],columns=["Total","Filtradas"],
-        index=["Contenedores","Contenedores con comentarios","% Contenedores con comentarios","Comentarios"])
+        index=["Contenedores","Contenedores con comentarios","% Contenedores con comentarios"])
 
     st.write("**Tabla resumen**")
 
