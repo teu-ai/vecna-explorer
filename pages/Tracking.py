@@ -497,19 +497,20 @@ with tab3:
     top_5_problems = problem_counts.sort_values(by="Contenedores", ascending=False).head(5)
 
     AgGrid(top_5_problems, agrid_options(top_5_problems, 5), fit_columns_on_grid_load=True)
+
     st.write("Top comentarios por envío en %")
-
     # Totals
-    envio_columns = [col for col in problem_counts.columns if col.startswith('Envío')]
-    envio_totals = problem_counts[envio_columns].sum()
+    total_envios_df = data_quality_wide_filtered.groupby('Envío de datos').size().to_frame().reset_index()
+    total_envios_df.columns = ["Envío de datos", "Total"]
+    totals_indexed = total_envios_df.set_index("Envío de datos")["Total"]
 
-    grouped_sums = top_5_problems.groupby('Comentario')[envio_columns].sum()
-    envios_df = (grouped_sums.div(entregas_total_filtered) * 100).round(1).transpose().reset_index()
+    envios = total_envios_df["Envío de datos"].tolist()
+    grouped_sums = top_5_problems.groupby('Comentario')[envios].sum()
+
+    envios_df = grouped_sums.div(totals_indexed, axis='columns').multiply(100).round(1).transpose().reset_index()
     envios_df.rename(columns={'index': 'Envío'}, inplace=True)
     envios_df = envios_df[['Envío'] + top_5_problems['Comentario'].tolist()]
-    print(data_quality_wide_filtered)
     AgGrid(envios_df, agrid_options(envios_df, 10), fit_columns_on_grid_load=True)
-
 
     st.write("**Detalle por comentario y entrega**")
 
