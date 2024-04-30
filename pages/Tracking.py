@@ -490,6 +490,21 @@ with tab2:
 
 with tab3:
 
+    st.write("**Top comentarios**")
+
+    problem_counts["Etapa"] = problem_counts["Comentario"].apply(lambda x: problem_columns_categories_list[x] if x in problem_columns_categories_list.keys() else "ETC")
+    problem_counts = problem_counts[["Comentario","Etapa"]+[x for x in problem_counts.columns if x not in ["Comentario","Etapa"]]]
+    top_5_problems = problem_counts.sort_values(by="Contenedores", ascending=False).head(5)
+
+    AgGrid(top_5_problems, agrid_options(top_5_problems, 5), fit_columns_on_grid_load=True)
+
+    envio_columns = [col for col in top_5_problems.columns if col.startswith('Envío')]
+    envios_df = top_5_problems.set_index('Comentario')[envio_columns].transpose()
+    envios_df.reset_index(inplace=True)
+    envios_df.rename(columns={'index': 'Envío'}, inplace=True)
+    AgGrid(envios_df, agrid_options(envios_df, 10), fit_columns_on_grid_load=True)
+
+
     st.write("**Detalle por comentario y entrega**")
 
     problem_counts["Etapa"] = problem_counts["Comentario"].apply(lambda x: problem_columns_categories_list[x] if x in problem_columns_categories_list.keys() else "ETC")
