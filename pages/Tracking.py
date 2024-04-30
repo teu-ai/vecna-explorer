@@ -498,10 +498,12 @@ with tab3:
 
     AgGrid(top_5_problems, agrid_options(top_5_problems, 5), fit_columns_on_grid_load=True)
 
-    envio_columns = [col for col in top_5_problems.columns if col.startswith('Envío')]
-    envios_df = top_5_problems.set_index('Comentario')[envio_columns].transpose()
-    envios_df.reset_index(inplace=True)
-    envios_df.rename(columns={'index': 'Envío'}, inplace=True)
+    # Totals
+    envio_columns = [col for col in problem_counts.columns if col.startswith('Envío')]
+    envio_totals = problem_counts[envio_columns].sum()
+
+    grouped_sums = top_5_problems.groupby('Comentario')[envio_columns].sum()
+    envios_df = (grouped_sums.div(envio_totals) * 100).round(1).transpose().reset_index()
     AgGrid(envios_df, agrid_options(envios_df, 10), fit_columns_on_grid_load=True)
 
 
