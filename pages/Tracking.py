@@ -505,6 +505,7 @@ with tab3:
 
     grouped_sums = top_5_problems.groupby('Comentario')[envio_columns].sum()
     envios_df = (grouped_sums.div(entregas_total_filtered) * 100).round(1).transpose().reset_index()
+    envios_df = envios_df[['Envío'] + top_5_problems['Comentario'].tolist()]
     AgGrid(envios_df, agrid_options(envios_df, 10), fit_columns_on_grid_load=True)
 
 
