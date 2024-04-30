@@ -497,6 +497,7 @@ with tab3:
     top_5_problems = problem_counts.sort_values(by="Contenedores", ascending=False).head(5)
 
     AgGrid(top_5_problems, agrid_options(top_5_problems, 5), fit_columns_on_grid_load=True)
+    st.write("Top comentarios por envío en %")
 
     # Totals
     envio_columns = [col for col in problem_counts.columns if col.startswith('Envío')]
