@@ -146,7 +146,7 @@ with col1_a:
 
 
 # Create selectbox with Envío de datos
-envios_de_datos_default = [f"Envío {i}" for i in range(50, 59)]
+envios_de_datos_default = [f"Envío {i}" for i in range(50, 58)].append("Envío ER 1")
 with col2_a:
     # envios_de_datos = data_quality_wide[["Envío de datos"]].drop_duplicates()["Envío de datos"].dropna().tolist()    
     envios_de_datos = ENVIOS
