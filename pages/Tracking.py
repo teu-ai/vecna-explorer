@@ -42,7 +42,7 @@ ENVIOS = [
     'Envío 55',
     'Envío 56',
     'Envío 57',
-    'Envío ER 1',
+    'Envío 1_ER',
 ]
 PROBLEMS_TO_IGNORE = [
     "W. Sin BL",
